@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Backups and temporary files
+*.bak
+*.tmp
+*.swp
+
+# Export directory
+chat-export/
+
+# Media and audio formats
+*.opus
+*.mp3
+*.ogg
+*.wav
+*.m4a
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.mp4
+*.mov
+*.vcf
+*.pdf
+*.zip
+
+# Sensitive text chat logs (allow test fixtures)
+*.txt
+!tests/fixtures/*.txt
+!tests/fixtures/**/*.txt
