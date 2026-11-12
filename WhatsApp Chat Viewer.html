@@ -1184,6 +1184,18 @@
       return parsedDate.getTime() || 0;
     }
 
+    function createMediaBlobUrl(file) {
+      if (!file) return "";
+      const ext = file.name.split('.').pop().toLowerCase();
+      // Browsers often detect .opus as "" or application/octet-stream when read from local disk.
+      // Wrapping in a typed Blob with audio/ogg or audio/webm allows native browser Opus decoding.
+      if (ext === 'opus') {
+        const mime = MediaSource.isTypeSupported('audio/webm; codecs=opus') ? 'audio/webm; codecs=opus' : 'audio/ogg; codecs=opus';
+        const typedBlob = file.slice(0, file.size, mime);
+        return URL.createObjectURL(typedBlob);
+      }
+      return URL.createObjectURL(file);
+    }
     function classifyMediaType(ext) {
       const cleanExt = (ext || "").toLowerCase().replace(/^\./, "");
       if (["jpg", "jpeg", "png", "gif", "webp", "mp4", "webm", "mov"].includes(cleanExt)) {
@@ -2411,7 +2423,7 @@
           for (const entry of fileEntries) {
             try {
               const file = await entry.getFile();
-              appState.mediaFileMap.set(entry.name, URL.createObjectURL(file));
+              appState.mediaFileMap.set(entry.name, createMediaBlobUrl(file));
               mediaCount++;
             } catch (_) {}
           }
@@ -2458,7 +2470,7 @@
       for (const f of files) {
         if (f === chatFile) continue;
         // Index by filename
-        appState.mediaFileMap.set(f.name, URL.createObjectURL(f));
+        appState.mediaFileMap.set(f.name, createMediaBlobUrl(f));
         mediaCount++;
       }
 
