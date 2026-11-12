@@ -69,7 +69,9 @@ export function parseDateToTimestamp(dateStr: string, timeStr?: string): number 
 }
 
 export function extractAttachment(text: string): { attachment: AttachmentMeta | null; cleanText: string } {
-  const attachRegex = /[\u200e\u200f]?([^\s()<>]+\.[A-Za-z0-9]{2,5})\s*\((?:file attached)[^\)]*\)/i;
+  // Matches English "(file attached)", Russian "(файл добавлен)", Spanish, German, French, Portuguese, Italian, Turkish, etc.
+  // or any standard WhatsApp attachment pattern: filename.ext (phrase)
+  const attachRegex = /[\u200e\u200f]?([^\s()<>]+\.[A-Za-z0-9]{2,5})\s*\((?:file attached|файл добавлен|archivo adjunto|angehängt|fichier joint|arquivo anexado|allegato|dosya eklendi|[^\)]*attached[^\)]*|[^\)]*добавлен[^\)]*)[^\)]*\)/i;
   const match = text.match(attachRegex);
   if (!match) {
     return {

@@ -62,6 +62,19 @@ describe("extractAttachment", () => {
     assert.equal(res.cleanText, "");
   });
 
+  it("extracts localized attachment phrases like (файл добавлен) and (archivo adjunto)", () => {
+    const ruRaw = "PTT-20230807-WA0003.opus (файл добавлен)";
+    const ruRes = extractAttachment(ruRaw);
+    assert.notEqual(ruRes.attachment, null);
+    assert.equal(ruRes.attachment?.fileName, "PTT-20230807-WA0003.opus");
+    assert.equal(ruRes.attachment?.extension, "opus");
+    assert.equal(ruRes.attachment?.isMedia, true);
+
+    const esRaw = "photo.jpg (archivo adjunto)";
+    const esRes = extractAttachment(esRaw);
+    assert.notEqual(esRes.attachment, null);
+    assert.equal(esRes.attachment?.fileName, "photo.jpg");
+  });
   it("handles text with no attachments", () => {
     const raw = "Hello, how are you?";
     const res = extractAttachment(raw);
