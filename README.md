@@ -1,55 +1,80 @@
 # WhatsApp Chat Viewer
 
-This project is a web-based application designed to display exported WhatsApp chat files (`.txt`) in a clean, chat-like interface. The interface mimics the familiar WhatsApp layout and includes media support.
+WhatsApp Chat Viewer is a standalone web page to view exported WhatsApp chats. The application works directly in a web browser. It does not send data to an external server.
 
 ## Features
-✅ Loads WhatsApp chat `.txt` files directly in the browser.  
-✅ Mimics WhatsApp's chat layout with distinct sender bubbles.  
-✅ Supports media display (images, videos) and file downloads.  
-✅ Optimized for performance with **infinite scrolling** to reduce memory usage.  
-✅ Lightweight, no external libraries required.  
 
-## Usage Instructions
-1. Open `index.html` in your browser.  
-2. Click on the **"Choose File"** button and select your `.txt` file.  
-3. Ensure media files are kept in the same folder as the `.txt` file for proper display. (Exactly What a Latest Chat Export by WhatsApp Does.)  
+### Chat Timeline
+- Parses exported WhatsApp chat files (`.txt`).
+- Shows messages in a timeline with sender-specific message bubbles.
+- Supports system messages, multi-line messages, timestamps, and attached media filenames.
 
-## How It Works
-1. Click the **"Choose File"** button and select a `.txt` file exported from WhatsApp.  
-2. The app initially loads **100 messages** for faster performance.  
-3. As you scroll down, additional messages are loaded automatically in batches of **100**.  
-4. Media files (images, videos, etc.) are displayed if they are available in the same folder as the `.txt` file.  
+### Search Engine
+- High-speed text search across all chat messages.
+- Highlights matched search terms in the message text.
+- Case-sensitive search option.
+- Regular expression search option.
 
-## Folder Structure
+### Filter Bar
+- Sender filter: filter messages by specific participants.
+- Date range filter: filter messages by start date and end date.
+- Media-only filter: show only messages that contain attached media.
+
+### Media Gallery View
+- Tabbed navigation between the Chat view and the Media Gallery view.
+- Category filters: All, Photos & Videos, Voice Notes, and Documents.
+- Shows item counts for each media category.
+- Search filter for media filenames.
+- Lazy rendering for fast performance with large media sets.
+
+### Lightbox Viewer
+- Full-screen viewer for photos and videos.
+- Zoom and pan controls for images.
+- Audio playback controls for voice notes (`.opus`, `.m4a`, `.ogg`, `.mp3`).
+- Download button for open media files.
+- Previous and next buttons for gallery navigation.
+- "Jump to message" action to open the related message in the chat timeline.
+
+### Standalone Operation
+- Operates fully on the client side.
+- Requires no server, backend service, or network connection.
+- Compatible with all modern web browsers.
+
+## How to Use
+
+1. Export a chat from WhatsApp (with media attachments).
+2. Unpack the exported `.zip` archive.
+3. Open `WhatsApp Chat Viewer.html` in your web browser.
+4. Select or drag-and-drop the exported chat directory or `_chat.txt` / `.txt` file and media files into the application.
+   - Alternatively, copy `WhatsApp Chat Viewer.html` directly into the unpacked chat directory and open the file.
+
+## Development and Testing
+
+### Prerequisites
+- Node.js 20 or higher
+- pnpm (or npm / yarn)
+
+### Install Dependencies
+```bash
+pnpm install
 ```
-📂 Project Folder
- ├── index.html       # Main HTML file (UI & logic)
- ├── chat.txt         # Sample WhatsApp chat file (for testing)
- ├── image1.jpg       # Sample media file (must match filename in .txt)
- ├── video1.mp4       # Sample video file (must match filename in .txt)
- └── README.md        # This documentation file
+
+### Run Tests
+Run the test suite (Vitest):
+```bash
+pnpm test
 ```
 
-## Sample File Format
-```
-22/04/2024, 20:21 - Rahul: Hello!
-22/04/2024, 20:23 - You: Hi Rahul! How are you?
-22/04/2024, 20:25 - Rahul: image1.jpg (file attached)
-22/04/2024, 20:28 - You: That's great!
+Run test suite in watch mode:
+```bash
+pnpm test:watch
 ```
 
-## Known Limitations
-- Media files **must** be placed in the same folder as the `.txt` file.  
-- Only `.jpg`, `.png`, `.jpeg`, `.gif`, `.mp4`, `.webm`, and `.ogg` are supported for inline display.  
-- Large chat files may take time to parse if they exceed several MBs.  
-
-## Future Improvements (I'm Not Sure)
-🚀 Add support for date-based search.  
-🚀 Improve UI with more interactive elements.  
-🚀 Add theme customization options.  
-
-## Contributing
-Contributions are welcome! Feel free to submit issues, suggestions, or pull requests.
+Run test coverage:
+```bash
+pnpm test:coverage
+```
 
 ## License
-This project is licensed under the [MIT License](LICENSE).
+
+This project is open-source software licensed under the [MIT License](LICENSE).
