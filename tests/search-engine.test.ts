@@ -217,4 +217,20 @@ Photo of bathroom
     assert.equal(messages[1].mediaIndexId, 1);
     assert.equal(messages[2].mediaIndexId, 2);
   });
+
+  it("buildMediaIndex resolves fileUrl from mediaFileMap if present", () => {
+    const sample = `25.07.2019, 22:25 - Alice: IMG-001.jpg (file attached)
+26.07.2019, 10:00 - Bob: DOC-002.pdf (file attached)`;
+
+    const messages = parseChat(sample);
+    const map = new Map<string, string>();
+    map.set("IMG-001.jpg", "blob:http://localhost/uuid-img-1");
+
+    const mediaList = buildMediaIndex(messages, map);
+
+    assert.equal(mediaList[0].fileName, "IMG-001.jpg");
+    assert.equal(mediaList[0].fileUrl, "blob:http://localhost/uuid-img-1");
+    assert.equal(mediaList[1].fileName, "DOC-002.pdf");
+    assert.equal(mediaList[1].fileUrl, "DOC-002.pdf");
+  });
 });

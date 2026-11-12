@@ -35,19 +35,25 @@ WhatsApp Chat Viewer is a standalone web page to view exported WhatsApp chats. T
 - Previous and next buttons for gallery navigation.
 - "Jump to message" action to open the related message in the chat timeline.
 
-### Standalone Operation
+### Standalone and Web Operation
 - Operates fully on the client side.
-- Requires no server, backend service, or network connection.
-- Compatible with all modern web browsers.
+- Requires no server, backend service, or network connection. All data stays in your browser.
+- Compatible with GitHub Pages and local `file://` execution.
+- Supports drag-and-drop and folder upload for complete media access on web.
 
 ## How to Use
 
+### Online (GitHub Pages)
+1. Open the application at `https://kolyasya.github.io/whatsapp-chat-viewer/`.
+2. Click **Select chat folder** or drag and drop your unpacked WhatsApp export folder directly onto the window.
+3. The viewer immediately displays messages, pictures, voice notes, videos, and documents without uploading files to any server.
+
+### Local Use (Direct File)
 1. Export a chat from WhatsApp (with media attachments).
 2. Unpack the exported `.zip` archive.
-3. Open `WhatsApp Chat Viewer.html` in your web browser.
-4. Select or drag-and-drop the exported chat directory or `_chat.txt` / `.txt` file and media files into the application.
-   - Alternatively, copy `WhatsApp Chat Viewer.html` directly into the unpacked chat directory and open the file.
-
+3. Open `WhatsApp Chat Viewer.html` (or `index.html`) in your web browser.
+4. Click **Select export .txt file** or **Select chat folder**, or drag and drop the files into the window.
+   - Alternatively, keep `WhatsApp Chat Viewer.html` directly in the unpacked chat directory and select the `.txt` file.
 ## Development and Testing
 
 ### Prerequisites

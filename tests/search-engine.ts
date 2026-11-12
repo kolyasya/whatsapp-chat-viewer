@@ -233,7 +233,7 @@ export function classifyMediaType(ext: string): MediaType {
   return "document";
 }
 
-export function buildMediaIndex(messages: ChatMessage[]): MediaItem[] {
+export function buildMediaIndex(messages: ChatMessage[], mediaFileMap?: Map<string, string>): MediaItem[] {
   const mediaIndex: MediaItem[] = [];
 
   for (let i = 0; i < messages.length; i++) {
@@ -243,7 +243,7 @@ export function buildMediaIndex(messages: ChatMessage[]): MediaItem[] {
     const fileName = msg.attachment.fileName;
     const ext = msg.attachment.extension;
     const fileType = classifyMediaType(ext);
-    const isUser = (msg.sender && (msg.sender.toLowerCase() === "you" || msg.sender.toLowerCase() === "me"));
+    const isUser = Boolean(msg.sender && (msg.sender.toLowerCase() === "you" || msg.sender.toLowerCase() === "me"));
     const { cleanText } = extractAttachment(msg.text);
 
     const mediaId = mediaIndex.length;
@@ -251,7 +251,7 @@ export function buildMediaIndex(messages: ChatMessage[]): MediaItem[] {
       id: mediaId,
       messageId: msg.id,
       fileName,
-      fileUrl: encodeURI(fileName),
+      fileUrl: (mediaFileMap && mediaFileMap.has(fileName)) ? (mediaFileMap.get(fileName) as string) : encodeURI(fileName),
       fileType,
       extension: ext,
       sender: msg.sender || "System",

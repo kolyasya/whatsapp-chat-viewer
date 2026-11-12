@@ -1,10 +1,11 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
 describe("WhatsApp Chat Viewer HTML Integration", () => {
   const htmlPath = join(process.cwd(), "WhatsApp Chat Viewer.html");
+  const indexPath = join(process.cwd(), "index.html");
   const htmlContent = readFileSync(htmlPath, "utf-8");
 
   it("contains search toolbar markup and control elements", () => {
@@ -115,5 +116,29 @@ describe("WhatsApp Chat Viewer HTML Integration", () => {
     assert.ok(htmlContent.includes('chatContainer.addEventListener("contextmenu"'));
     assert.ok(htmlContent.includes("contextMenuGoHistory.addEventListener(\"click\""));
     assert.ok(htmlContent.includes("jumpToChatMessage(targetId, { resetSearch: true })"));
+  });
+
+  it("contains folder picker input with webkitdirectory and directory attributes", () => {
+    assert.ok(htmlContent.includes('id="folderInput"'));
+    assert.ok(htmlContent.includes("webkitdirectory"));
+  });
+
+  it("contains mediaFileMap and resolveMediaUrl helper in script", () => {
+    assert.ok(htmlContent.includes("mediaFileMap: new Map()"));
+    assert.ok(htmlContent.includes("function resolveMediaUrl"));
+  });
+
+  it("contains drag-and-drop event listeners for dragover and drop", () => {
+    assert.ok(htmlContent.includes('"dragover"') || htmlContent.includes("'dragover'"));
+    assert.ok(htmlContent.includes('"drop"') || htmlContent.includes("'drop'"));
+  });
+
+  it("has both WhatsApp Chat Viewer.html and index.html with identical web media loader markup", () => {
+    assert.ok(existsSync(htmlPath), "WhatsApp Chat Viewer.html must exist");
+    assert.ok(existsSync(indexPath), "index.html must exist");
+    const indexContent = readFileSync(indexPath, "utf-8");
+    assert.ok(indexContent.includes('id="folderInput"'));
+    assert.ok(indexContent.includes("resolveMediaUrl"));
+    assert.ok(indexContent.includes("mediaFileMap"));
   });
 });

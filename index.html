@@ -1,0 +1,2483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp Chat Viewer</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #efeae2;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    header {
+      background-color: #008069;
+      color: white;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+      flex-shrink: 0;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 500;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .file-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #fileInput, #folderInput {
+      font-size: 0.85rem;
+      color: #fff;
+    }
+    .folder-input-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 4px;
+      color: #fff;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .folder-input-label:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+    #folderInput {
+      display: none;
+    }
+    .drop-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 168, 132, 0.88);
+      color: #fff;
+      z-index: 9999;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      border: 4px dashed #fff;
+      margin: 12px;
+      border-radius: 12px;
+    }
+    .drop-overlay.active {
+      display: flex;
+    }
+    .drop-overlay-icon {
+      font-size: 3.5rem;
+      margin-bottom: 12px;
+    }
+    .drop-overlay-text {
+      font-size: 1.3rem;
+      font-weight: 500;
+    }
+    .drop-overlay-sub {
+      font-size: 0.9rem;
+      opacity: 0.85;
+      margin-top: 6px;
+    }
+    #status {
+      font-size: 0.85rem;
+      opacity: 0.9;
+    }
+    /* Search & Filter Toolbar */
+    .search-panel {
+      background-color: #f0f2f5;
+      border-bottom: 1px solid #d1d7db;
+      padding: 10px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .search-input-row {
+      display: flex;
+      align-items: center;
+      position: relative;
+      width: 100%;
+    }
+    .search-input-row .search-icon {
+      position: absolute;
+      left: 12px;
+      color: #54656f;
+      pointer-events: none;
+      font-size: 14px;
+    }
+    #searchInput {
+      width: 100%;
+      padding: 8px 36px 8px 34px;
+      border: 1px solid #d1d7db;
+      border-radius: 8px;
+      font-size: 0.92rem;
+      background-color: #ffffff;
+      outline: none;
+      color: #111b21;
+    }
+    #searchInput:focus {
+      border-color: #00a884;
+      box-shadow: 0 0 0 1px #00a884;
+    }
+    .search-clear-btn {
+      position: absolute;
+      right: 10px;
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      color: #8696a0;
+      cursor: pointer;
+      display: none;
+      padding: 2px 6px;
+      line-height: 1;
+    }
+    .search-clear-btn:hover {
+      color: #111b21;
+    }
+    .filter-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 0.85rem;
+      color: #3b4a54;
+    }
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .filter-group select,
+    .filter-group input[type="date"] {
+      padding: 4px 8px;
+      border: 1px solid #d1d7db;
+      border-radius: 6px;
+      background: #ffffff;
+      font-size: 0.82rem;
+      color: #111b21;
+      outline: none;
+    }
+    .filter-group select:focus,
+    .filter-group input[type="date"]:focus {
+      border-color: #00a884;
+    }
+    .filter-checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .reset-filters-btn {
+      background: #e9edef;
+      border: 1px solid #d1d7db;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 0.8rem;
+      color: #54656f;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .reset-filters-btn:hover {
+      background: #dfe5e7;
+      color: #111b21;
+    }
+    .search-stats {
+      font-size: 0.82rem;
+      color: #667781;
+      margin-left: auto;
+      white-space: nowrap;
+    }
+    .search-stats .highlight-count {
+      font-weight: 600;
+      color: #008069;
+    }
+    /* Highlight style */
+    mark.search-highlight {
+      background-color: #fff275;
+      color: #111b21;
+      padding: 0 1px;
+      border-radius: 2px;
+    }
+    /* Empty results */
+    .empty-search-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #667781;
+      margin: auto;
+    }
+    .empty-search-state .empty-icon {
+      font-size: 2.5rem;
+      margin-bottom: 12px;
+      opacity: 0.7;
+    }
+    .empty-search-state .empty-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #111b21;
+      margin-bottom: 6px;
+    }
+    .empty-search-state .empty-desc {
+      font-size: 0.9rem;
+    }
+    #chat-container {
+      max-width: 900px;
+      width: 100%;
+      margin: 0 auto;
+      flex: 1;
+      padding: 16px 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .system-message {
+      align-self: center;
+      background-color: #ffeecd;
+      color: #54656f;
+      font-size: 0.75rem;
+      padding: 5px 12px;
+      border-radius: 8px;
+      max-width: 80%;
+      text-align: center;
+      box-shadow: 0 1px 0.5px rgba(11,20,26,0.13);
+      margin: 8px 0;
+    }
+    .message {
+      padding: 6px 9px 8px 9px;
+      border-radius: 8px;
+      max-width: 75%;
+      word-wrap: break-word;
+      position: relative;
+      font-size: 0.9rem;
+      line-height: 1.35;
+      box-shadow: 0 1px 0.5px rgba(11,20,26,0.13);
+    }
+    .user {
+      background-color: #d9fdd3;
+      align-self: flex-end;
+      border-top-right-radius: 0;
+    }
+    .other {
+      background-color: #ffffff;
+      align-self: flex-start;
+      border-top-left-radius: 0;
+    }
+    .sender-name {
+      font-weight: 600;
+      font-size: 0.8rem;
+      color: #128c7e;
+      margin-bottom: 2px;
+    }
+    .message-text {
+      white-space: pre-wrap;
+    }
+    .meta {
+      font-size: 0.68rem;
+      color: #667781;
+      float: right;
+      margin-left: 10px;
+      margin-top: 4px;
+      user-select: none;
+    }
+    img.media-preview, video.media-preview {
+      max-width: 100%;
+      max-height: 380px;
+      border-radius: 6px;
+      margin-top: 4px;
+      display: block;
+      cursor: pointer;
+    }
+    audio.media-audio {
+      margin-top: 4px;
+      max-width: 100%;
+      display: block;
+    }
+    a.file-attachment {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
+      padding: 6px 10px;
+      background: #f0f2f5;
+      border-radius: 6px;
+      color: #027eb5;
+      text-decoration: none;
+      font-size: 0.85rem;
+    }
+    a.file-attachment:hover {
+      text-decoration: underline;
+    }
+    #loading-indicator {
+      text-align: center;
+      padding: 8px;
+      font-size: 0.8rem;
+      color: #667781;
+    }
+    /* View Switch in Header */
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .view-switch {
+      display: inline-flex;
+      background: rgba(0, 0, 0, 0.18);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 3px;
+    }
+    .view-switch-btn {
+      background: transparent;
+      border: none;
+      color: rgba(255, 255, 255, 0.85);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .view-switch-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .view-switch-btn.active {
+      background: #fff;
+      color: #008069;
+      font-weight: 600;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    }
+
+    /* Message highlight pulse */
+    @keyframes messageHighlightPulse {
+      0% { outline: 3px solid #00a884; background-color: #d1f4cc; }
+      50% { outline: 3px solid #00a884; background-color: #d1f4cc; }
+      100% { outline: 3px solid transparent; }
+    }
+    .highlight-pulse {
+      animation: messageHighlightPulse 2s ease-out;
+    }
+
+    /* Message Context Menu */
+    .chat-context-menu {
+      position: fixed;
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(11,20,26,0.18), 0 1px 4px rgba(11,20,26,0.12);
+      padding: 6px 0;
+      min-width: 190px;
+      z-index: 2500;
+      display: none;
+      user-select: none;
+      animation: contextMenuFadeIn 0.12s ease-out;
+    }
+    @keyframes contextMenuFadeIn {
+      from { opacity: 0; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .chat-context-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 16px;
+      font-size: 0.88rem;
+      color: #111b21;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .chat-context-menu-item:hover {
+      background: #f5f6f6;
+    }
+    .chat-context-menu-item .menu-icon {
+      font-size: 1rem;
+      line-height: 1;
+      width: 18px;
+      text-align: center;
+    }
+
+    /* Dedicated Media Gallery Container */
+    #media-gallery-container {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow-y: auto;
+      background: #f0f2f5;
+    }
+    .gallery-toolbar {
+      background: #fff;
+      border-bottom: 1px solid #e9edef;
+      padding: 10px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .gallery-tabs {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .gallery-tab {
+      background: #f0f2f5;
+      border: 1px solid transparent;
+      border-radius: 18px;
+      padding: 6px 14px;
+      font-size: 0.85rem;
+      color: #54656f;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .gallery-tab:hover {
+      background: #e9edef;
+    }
+    .gallery-tab.active {
+      background: #008069;
+      color: #fff;
+      font-weight: 500;
+    }
+    .gallery-search-box {
+      flex: 1;
+      min-width: 200px;
+      max-width: 360px;
+    }
+    .gallery-search-box input {
+      width: 100%;
+      padding: 7px 12px;
+      border: 1px solid #d1d7db;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      outline: none;
+    }
+    .gallery-search-box input:focus {
+      border-color: #00a884;
+    }
+
+    /* Gallery Grid */
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 10px;
+      padding: 16px 20px;
+      align-content: start;
+    }
+    .gallery-card {
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #e9edef;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: transform 0.15s, box-shadow 0.15s;
+      aspect-ratio: 1 / 1;
+    }
+    .gallery-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+    }
+    .gallery-card img,
+    .gallery-card video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .gallery-badge-video {
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+      background: rgba(0,0,0,0.65);
+      color: #fff;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .gallery-card-voice,
+    .gallery-card-doc {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: #fafafa;
+      height: 100%;
+    }
+    .gallery-card-icon {
+      font-size: 2rem;
+      color: #008069;
+    }
+    .gallery-card-title {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #111b21;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      line-clamp: 2;
+      word-break: break-all;
+      margin-top: 4px;
+    }
+    .gallery-card-meta {
+      font-size: 0.72rem;
+      color: #667781;
+      margin-top: auto;
+      display: flex;
+      justify-content: space-between;
+    }
+    .gallery-card-play-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #00a884;
+      color: #fff;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      margin-top: 6px;
+      align-self: flex-start;
+    }
+    .missing-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      padding: 8px;
+      text-align: center;
+      background: #fdf2f2;
+      color: #ba1a1a;
+      font-size: 0.75rem;
+    }
+    .missing-placeholder small {
+      color: #79747e;
+      word-break: break-all;
+      margin-top: 4px;
+    }
+    #gallery-loading-indicator {
+      text-align: center;
+      padding: 12px;
+      color: #667781;
+      font-size: 0.85rem;
+    }
+
+    /* Inline Lightbox Modal */
+    .lightbox-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      background: rgba(11, 20, 26, 0.94);
+      color: #fff;
+    }
+    .lightbox-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+    .lightbox-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 10;
+      flex-shrink: 0;
+      backdrop-filter: blur(8px);
+    }
+    .lightbox-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      overflow: hidden;
+    }
+    .lightbox-title {
+      font-weight: 500;
+      font-size: 0.95rem;
+      max-width: 400px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .lightbox-sender {
+      background: rgba(255, 255, 255, 0.15);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+    }
+    .lightbox-counter {
+      color: #aebac1;
+      font-size: 0.85rem;
+    }
+    .lightbox-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .lightbox-btn {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s;
+    }
+    .lightbox-btn:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+    .lightbox-btn.close {
+      font-size: 1.1rem;
+      padding: 4px 10px;
+    }
+    .lightbox-body {
+      position: relative;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      z-index: 5;
+    }
+    .lightbox-content-viewport {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      user-select: none;
+    }
+    .lightbox-content-viewport img {
+      max-width: 90vw;
+      max-height: 80vh;
+      object-fit: contain;
+      transition: transform 0.05s linear;
+      cursor: grab;
+    }
+    .lightbox-content-viewport img.panning {
+      cursor: grabbing;
+    }
+    .lightbox-content-viewport video {
+      max-width: 90vw;
+      max-height: 80vh;
+      outline: none;
+      border-radius: 6px;
+    }
+    .lightbox-nav-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0, 0, 0, 0.45);
+      color: #fff;
+      border: none;
+      width: 48px;
+      height: 64px;
+      font-size: 2.2rem;
+      cursor: pointer;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+      border-radius: 6px;
+    }
+    .lightbox-nav-btn:hover {
+      background: rgba(0, 0, 0, 0.75);
+    }
+    .lightbox-nav-btn.prev {
+      left: 16px;
+    }
+    .lightbox-nav-btn.next {
+      right: 16px;
+    }
+    .lightbox-caption {
+      padding: 12px 24px;
+      background: rgba(0, 0, 0, 0.6);
+      font-size: 0.9rem;
+      color: #e9edef;
+      text-align: center;
+      z-index: 10;
+      min-height: 20px;
+      max-height: 80px;
+      overflow-y: auto;
+    }
+
+    /* Lightbox Custom Audio Player */
+    .lightbox-audio-card {
+      background: #1f2c34;
+      border-radius: 12px;
+      padding: 24px 32px;
+      width: 90%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .lightbox-audio-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .lightbox-audio-icon {
+      font-size: 2.4rem;
+      color: #00a884;
+    }
+    .lightbox-audio-details {
+      flex: 1;
+      overflow: hidden;
+    }
+    .lightbox-audio-title {
+      font-size: 1rem;
+      font-weight: 500;
+      color: #e9edef;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .lightbox-audio-sub {
+      font-size: 0.8rem;
+      color: #8696a0;
+      margin-top: 2px;
+    }
+    .lightbox-audio-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .lightbox-audio-play-btn {
+      background: #00a884;
+      color: #fff;
+      border: none;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .lightbox-audio-seekbar {
+      flex: 1;
+      height: 6px;
+      accent-color: #00a884;
+      cursor: pointer;
+    }
+    .lightbox-audio-time {
+      font-size: 0.8rem;
+      color: #8696a0;
+      font-variant-numeric: tabular-nums;
+      min-width: 40px;
+      text-align: right;
+    }
+    .lightbox-audio-speed-btn {
+      background: rgba(255, 255, 255, 0.12);
+      border: none;
+      color: #e9edef;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .audio-fallback-link {
+      color: #f7a531;
+      text-decoration: underline;
+      font-size: 0.9rem;
+      text-align: center;
+      display: block;
+      padding: 12px;
+    }
+
+    /* Lightbox Document Card */
+    .lightbox-doc-card {
+      background: #1f2c34;
+      border-radius: 12px;
+      padding: 30px;
+      text-align: center;
+      max-width: 420px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .lightbox-doc-icon {
+      font-size: 3.5rem;
+      color: #53bdeb;
+    }
+    .lightbox-doc-name {
+      font-size: 1.05rem;
+      color: #e9edef;
+      word-break: break-all;
+    }
+    .lightbox-doc-download-btn {
+      margin-top: 8px;
+      background: #00a884;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+    }
+    /* Scroll to bottom floating button */
+    .scroll-bottom-btn {
+      position: fixed;
+      bottom: 24px;
+      right: 28px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background-color: #ffffff;
+      color: #54656f;
+      border: none;
+      box-shadow: 0 2px 8px rgba(11, 20, 26, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 100;
+      opacity: 0;
+      visibility: hidden;
+      transform: scale(0.85);
+      transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease, background-color 0.15s ease;
+    }
+    .scroll-bottom-btn:hover {
+      background-color: #f0f2f5;
+      color: #111b21;
+      transform: scale(1);
+    }
+    .scroll-bottom-btn.visible {
+      opacity: 1;
+      visibility: visible;
+      transform: scale(1);
+    }
+    .scroll-bottom-btn svg {
+      width: 22px;
+      height: 22px;
+      fill: currentColor;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <h1>WhatsApp Chat Viewer</h1>
+      <div class="view-switch">
+        <button id="view-tab-chat" class="view-switch-btn active" data-view="chat">💬 Chat</button>
+        <button id="view-tab-media" class="view-switch-btn" data-view="media">🖼️ Media (<span id="total-media-count">0</span>)</button>
+      </div>
+    </div>
+    <div class="controls">
+      <span id="status">Select export .txt file or folder</span>
+      <div class="file-input-wrapper">
+        <input type="file" id="fileInput" accept=".txt">
+        <label for="folderInput" class="folder-input-label" title="Select chat export folder with media">📁 Select folder</label>
+        <input type="file" id="folderInput" webkitdirectory directory multiple>
+      </div>
+    </div>
+  </header>
+  
+  <div class="search-panel">
+    <div class="search-input-row">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Search messages and files (Ctrl+F / ⌘F)..." autocomplete="off">
+      <button id="searchClearBtn" class="search-clear-btn" title="Clear search">&times;</button>
+    </div>
+    <div class="filter-row">
+      <div class="filter-group">
+        <label for="senderFilter">Sender:</label>
+        <select id="senderFilter">
+          <option value="ALL">All participants</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="dateFrom">From:</label>
+        <input type="date" id="dateFrom">
+        <label for="dateTo">To:</label>
+        <input type="date" id="dateTo">
+      </div>
+      <label class="filter-checkbox-label">
+        <input type="checkbox" id="mediaOnly"> Media only
+      </label>
+      <button id="resetFiltersBtn" class="reset-filters-btn">Reset</button>
+      <div id="searchStats" class="search-stats"></div>
+    </div>
+  </div>
+
+  <div id="chat-container"></div>
+  <div id="loading-indicator" style="display: none;">Loading messages...</div>
+  <button id="scrollToBottomBtn" class="scroll-bottom-btn" title="To latest messages" aria-label="Scroll down to latest messages">
+    <svg viewBox="0 0 24 24">
+      <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
+    </svg>
+  </button>
+
+  <!-- Message Context Menu -->
+  <div id="messageContextMenu" class="chat-context-menu" role="menu" aria-hidden="true">
+    <div class="chat-context-menu-item" id="contextMenuGoHistory" role="menuitem">
+      <span class="menu-icon">📜</span>
+      <span>Jump to history</span>
+    </div>
+  </div>
+
+  <!-- Dedicated Media Gallery View -->
+  <div id="media-gallery-container" style="display: none;">
+    <div class="gallery-toolbar">
+      <div class="gallery-tabs">
+        <button class="gallery-tab active" data-filter="all">All (<span id="count-all">0</span>)</button>
+        <button class="gallery-tab" data-filter="photo_video">Photos & Videos (<span id="count-photo-video">0</span>)</button>
+        <button class="gallery-tab" data-filter="voice">Voice (<span id="count-voice">0</span>)</button>
+        <button class="gallery-tab" data-filter="document">Documents (<span id="count-doc">0</span>)</button>
+      </div>
+      <div class="gallery-search-box">
+        <input type="text" id="gallery-search-input" placeholder="Search by file name or caption...">
+      </div>
+    </div>
+    <div id="gallery-grid" class="gallery-grid"></div>
+    <div id="gallery-sentinel"></div>
+    <div id="gallery-loading-indicator" style="display: none;">Loading media files...</div>
+  </div>
+
+  <!-- Inline Lightbox Modal -->
+  <div id="lightbox-modal" class="lightbox-modal" aria-hidden="true" style="display: none;">
+    <div class="lightbox-overlay" id="lightbox-overlay"></div>
+    <div class="lightbox-header">
+      <div class="lightbox-meta">
+        <span class="lightbox-title" id="lightbox-title"></span>
+        <span class="lightbox-sender" id="lightbox-sender"></span>
+        <span class="lightbox-counter" id="lightbox-counter"></span>
+      </div>
+      <div class="lightbox-actions">
+        <button class="lightbox-btn" id="lightbox-btn-jump" title="Show in chat">💬 In chat</button>
+        <a class="lightbox-btn" id="lightbox-btn-download" download title="Download file">⬇ Download</a>
+        <button class="lightbox-btn close" id="lightbox-btn-close" title="Close (Esc)">✕</button>
+      </div>
+    </div>
+    <div class="lightbox-body">
+      <button class="lightbox-nav-btn prev" id="lightbox-btn-prev" title="Previous (←)">‹</button>
+      <div class="lightbox-content-viewport" id="lightbox-viewport"></div>
+      <button class="lightbox-nav-btn next" id="lightbox-btn-next" title="Next (→)">›</button>
+    </div>
+    <div class="lightbox-caption" id="lightbox-caption"></div>
+  </div>
+  <div id="drop-overlay" class="drop-overlay">
+    <div class="drop-overlay-icon">📁</div>
+    <div class="drop-overlay-text">Drop WhatsApp chat export here</div>
+    <div class="drop-overlay-sub">Drop a chat folder or files (.txt and media attachments)</div>
+  </div>
+  <script>
+    const appState = {
+      allMessages: [],
+      filteredMessages: [],
+      currentIndex: 0,
+      searchQuery: "",
+      normalizedTerms: [],
+      filters: {
+        sender: "ALL",
+        dateFrom: null,
+        dateTo: null,
+        mediaOnly: false
+      },
+      isSearchActive: false,
+      lastScrollTop: 0,
+      currentView: "chat", // "chat" | "media"
+      mediaIndex: [],
+      filteredMedia: [],
+      galleryCurrentIndex: 0,
+      galleryCategory: "all",
+      gallerySearchQuery: "",
+      mediaFileMap: new Map()
+    };
+
+    function resolveMediaUrl(fileName) {
+      if (appState.mediaFileMap && appState.mediaFileMap.has(fileName)) {
+        return appState.mediaFileMap.get(fileName);
+      }
+      return encodeURI(fileName);
+    }
+
+    const lightboxState = {
+      isOpen: false,
+      currentIndex: 0,
+      mediaList: [],
+      zoomLevel: 1.0,
+      panOffset: { x: 0, y: 0 },
+      isDragging: false,
+      dragStart: { x: 0, y: 0 },
+      audioInstance: null,
+      audioPlaybackSpeed: 1.0
+    };
+
+    const chunkSize = 150;
+    const chatContainer = document.getElementById("chat-container");
+    const statusSpan = document.getElementById("status");
+    const loadingIndicator = document.getElementById("loading-indicator");
+    const searchInput = document.getElementById("searchInput");
+    const searchClearBtn = document.getElementById("searchClearBtn");
+    const senderFilter = document.getElementById("senderFilter");
+    const dateFromInput = document.getElementById("dateFrom");
+    const dateToInput = document.getElementById("dateTo");
+    const mediaOnlyCheckbox = document.getElementById("mediaOnly");
+    const resetFiltersBtn = document.getElementById("resetFiltersBtn");
+    const searchStats = document.getElementById("searchStats");
+    const scrollToBottomBtn = document.getElementById("scrollToBottomBtn");
+
+    // View switch elements
+    const viewTabChat = document.getElementById("view-tab-chat");
+    const viewTabMedia = document.getElementById("view-tab-media");
+    const totalMediaCountSpan = document.getElementById("total-media-count");
+    const searchPanel = document.querySelector(".search-panel");
+
+    // Gallery elements
+    const mediaGalleryContainer = document.getElementById("media-gallery-container");
+    const galleryGrid = document.getElementById("gallery-grid");
+    const gallerySentinel = document.getElementById("gallery-sentinel");
+    const galleryLoadingIndicator = document.getElementById("gallery-loading-indicator");
+    const gallerySearchInput = document.getElementById("gallery-search-input");
+    const galleryTabs = document.querySelectorAll(".gallery-tab");
+    const countAllSpan = document.getElementById("count-all");
+    const countPhotoVideoSpan = document.getElementById("count-photo-video");
+    const countVoiceSpan = document.getElementById("count-voice");
+    const countDocSpan = document.getElementById("count-doc");
+
+    // Lightbox elements
+    const lightboxModal = document.getElementById("lightbox-modal");
+    const lightboxOverlay = document.getElementById("lightbox-overlay");
+    const lightboxTitle = document.getElementById("lightbox-title");
+    const lightboxSender = document.getElementById("lightbox-sender");
+    const lightboxCounter = document.getElementById("lightbox-counter");
+    const lightboxBtnJump = document.getElementById("lightbox-btn-jump");
+    const lightboxBtnDownload = document.getElementById("lightbox-btn-download");
+    const lightboxBtnClose = document.getElementById("lightbox-btn-close");
+    const lightboxBtnPrev = document.getElementById("lightbox-btn-prev");
+    const lightboxBtnNext = document.getElementById("lightbox-btn-next");
+    const lightboxViewport = document.getElementById("lightbox-viewport");
+    const lightboxCaption = document.getElementById("lightbox-caption");
+
+    // Context Menu elements
+    const messageContextMenu = document.getElementById("messageContextMenu");
+    const contextMenuGoHistory = document.getElementById("contextMenuGoHistory");
+    let contextMenuTargetMessageId = null;
+
+    function parseDateToTimestamp(dateStr, timeStr) {
+      if (!dateStr) return 0;
+      const cleanDate = dateStr.replace(/\//g, '.');
+      const parts = cleanDate.split('.');
+      if (parts.length !== 3) return 0;
+
+      let day = parseInt(parts[0], 10);
+      let month = parseInt(parts[1], 10) - 1;
+      let year = parseInt(parts[2], 10);
+      if (isNaN(day) || isNaN(month) || isNaN(year)) return 0;
+      if (year < 100) year += 2000;
+
+      let hours = 0;
+      let minutes = 0;
+      if (timeStr) {
+        const timeMatch = timeStr.match(/^(\d{1,2}):(\d{2})/);
+        if (timeMatch) {
+          hours = parseInt(timeMatch[1], 10);
+          minutes = parseInt(timeMatch[2], 10);
+          if (/pm/i.test(timeStr) && hours < 12) hours += 12;
+          if (/am/i.test(timeStr) && hours === 12) hours = 0;
+        }
+      }
+
+      const parsedDate = new Date(year, month, day, hours, minutes);
+      return parsedDate.getTime() || 0;
+    }
+
+    function classifyMediaType(ext) {
+      const cleanExt = (ext || "").toLowerCase().replace(/^\./, "");
+      if (["jpg", "jpeg", "png", "gif", "webp", "mp4", "webm", "mov"].includes(cleanExt)) {
+        return "photo_video";
+      }
+      if (["opus", "ogg", "mp3", "m4a", "wav", "aac"].includes(cleanExt)) {
+        return "voice";
+      }
+      return "document";
+    }
+
+    function extractAttachment(text) {
+      const attachRegex = /[\u200e\u200f]?([^\s()<>]+\.[A-Za-z0-9]{2,5})\s*\((?:file attached)[^\)]*\)/i;
+      const match = text.match(attachRegex);
+      if (!match) {
+        return {
+          attachment: null,
+          cleanText: text.replace(/[\u200e\u200f]/g, "").trim()
+        };
+      }
+
+      const fileName = match[1];
+      const ext = fileName.split('.').pop().toLowerCase();
+      const mediaExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'mov', 'opus', 'ogg', 'mp3', 'm4a', 'wav', 'aac'];
+      const isMedia = mediaExts.includes(ext);
+      const cleanText = text.replace(match[0], "").replace(/[\u200e\u200f]/g, "").trim();
+
+      return {
+        attachment: {
+          fileName,
+          extension: ext,
+          isMedia
+        },
+        cleanText
+      };
+    }
+
+    function buildMediaIndex(messages) {
+      const mediaIndex = [];
+      for (let i = 0; i < messages.length; i++) {
+        const msg = messages[i];
+        if (!msg.attachment) continue;
+
+        const fileName = msg.attachment.fileName;
+        const ext = msg.attachment.extension;
+        const fileType = classifyMediaType(ext);
+        const isUser = (msg.sender && (msg.sender.toLowerCase() === "you" || msg.sender.toLowerCase() === "me"));
+        const { cleanText } = extractAttachment(msg.text);
+
+        const mediaId = mediaIndex.length;
+        const item = {
+          id: mediaId,
+          messageId: msg.id,
+          fileName,
+          fileUrl: resolveMediaUrl(fileName),
+          fileType,
+          extension: ext,
+          sender: msg.sender || "System",
+          isUser,
+          date: msg.date,
+          time: msg.time,
+          caption: cleanText
+        };
+
+        mediaIndex.push(item);
+        msg.mediaIndexId = mediaId;
+      }
+      return mediaIndex;
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function highlightText(rawText, terms) {
+      if (!rawText) return "";
+      if (!terms || terms.length === 0) {
+        return escapeHtml(rawText);
+      }
+
+      const validTerms = terms
+        .map(t => t.trim())
+        .filter(t => t.length > 0);
+
+      if (validTerms.length === 0) {
+        return escapeHtml(rawText);
+      }
+
+      const escapedTerms = validTerms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+      const pattern = new RegExp(`(${escapedTerms.join('|')})`, 'gi');
+      const safeText = escapeHtml(rawText);
+      return safeText.replace(pattern, '<mark class="search-highlight">$1</mark>');
+    }
+
+    function renderAttachment(fileName, terms, mediaIndexId) {
+      const ext = fileName.split('.').pop().toLowerCase();
+      const mediaUrl = resolveMediaUrl(fileName);
+      const mediaType = classifyMediaType(ext);
+
+      const openModalHandler = (e) => {
+        if (typeof mediaIndexId === 'number' && appState.mediaIndex[mediaIndexId]) {
+          e.preventDefault();
+          openLightbox(mediaIndexId, null);
+        }
+      };
+
+      if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+        const img = document.createElement("img");
+        img.className = "media-preview";
+        img.src = mediaUrl;
+        img.loading = "lazy";
+        img.decoding = "async";
+        img.alt = fileName;
+        img.style.cursor = "pointer";
+        img.onclick = openModalHandler;
+        img.onerror = () => {
+          img.style.display = 'none';
+          const err = document.createElement('div');
+          err.className = 'missing-placeholder';
+          err.innerHTML = `<span>⚠️ File not found</span><small>${escapeHtml(fileName)}</small>`;
+          img.parentNode?.insertBefore(err, img);
+        };
+        return img;
+      }
+
+      if (['mp4', 'webm', 'mov'].includes(ext)) {
+        const video = document.createElement("video");
+        video.className = "media-preview";
+        video.src = mediaUrl;
+        video.controls = true;
+        video.preload = "none";
+        video.onerror = () => {
+          video.style.display = 'none';
+          const err = document.createElement('div');
+          err.className = 'missing-placeholder';
+          err.innerHTML = `<span>⚠️ Video unavailable</span><small>${escapeHtml(fileName)}</small>`;
+          video.parentNode?.insertBefore(err, video);
+        };
+        return video;
+      }
+
+      if (['opus', 'ogg', 'mp3', 'm4a', 'wav', 'aac'].includes(ext)) {
+        const audio = document.createElement("audio");
+        audio.className = "media-audio";
+        audio.src = mediaUrl;
+        audio.controls = true;
+        audio.preload = "none";
+        audio.onerror = () => {
+          const fallback = document.createElement('a');
+          fallback.className = 'audio-fallback-link';
+          fallback.href = mediaUrl;
+          fallback.textContent = '⚠️ Could not play .opus in browser. Download file';
+          audio.replaceWith(fallback);
+        };
+        return audio;
+      }
+
+      const link = document.createElement("a");
+      link.className = "file-attachment";
+      link.href = mediaUrl;
+      link.target = "_blank";
+      link.innerHTML = `📎 ${highlightText(fileName, terms)}`;
+      if (typeof mediaIndexId === 'number') {
+        link.onclick = (e) => {
+          e.preventDefault();
+          openLightbox(mediaIndexId, null);
+        };
+      }
+      return link;
+    }
+
+    function createMessageElement(item, terms) {
+      if (item.type === "system") {
+        const sysEl = document.createElement("div");
+        sysEl.id = `msg-${item.id}`;
+        sysEl.className = "system-message";
+        sysEl.innerHTML = highlightText(item.text, terms);
+        return sysEl;
+      }
+
+      const msgEl = document.createElement("div");
+      msgEl.id = `msg-${item.id}`;
+      const isUser = (item.sender && (item.sender.toLowerCase() === "you" || item.sender.toLowerCase() === "me"));
+      msgEl.className = `message ${isUser ? "user" : "other"}`;
+
+      if (!isUser) {
+        const senderEl = document.createElement("div");
+        senderEl.className = "sender-name";
+        senderEl.innerHTML = highlightText(item.sender, terms);
+        msgEl.appendChild(senderEl);
+      }
+
+      if (item.attachment) {
+        const mediaNode = renderAttachment(item.attachment.fileName, terms, item.mediaIndexId);
+        msgEl.appendChild(mediaNode);
+        const caption = extractAttachment(item.text).cleanText;
+        if (caption) {
+          const captionEl = document.createElement("div");
+          captionEl.className = "message-text";
+          captionEl.innerHTML = highlightText(caption, terms);
+          msgEl.appendChild(captionEl);
+        }
+      } else {
+        const textEl = document.createElement("div");
+        textEl.className = "message-text";
+        textEl.innerHTML = highlightText(item.text.replace(/[\u200e\u200f]/g, ""), terms);
+        msgEl.appendChild(textEl);
+      }
+
+      const metaEl = document.createElement("span");
+      metaEl.className = "meta";
+      metaEl.textContent = `${item.date} ${item.time}`;
+      msgEl.appendChild(metaEl);
+
+      return msgEl;
+    }
+
+    function renderEmptyState() {
+      const emptyEl = document.createElement("div");
+      emptyEl.className = "empty-search-state";
+      emptyEl.innerHTML = `
+        <div class="empty-icon">🔍</div>
+        <div class="empty-title">No messages found</div>
+        <div class="empty-desc">Try changing search query or resetting filters</div>
+      `;
+      chatContainer.appendChild(emptyEl);
+    }
+
+    function renderNextBatch() {
+      const activeDataset = appState.isSearchActive 
+        ? appState.filteredMessages 
+        : appState.allMessages;
+
+      if (activeDataset.length === 0) {
+        loadingIndicator.style.display = "none";
+        if (appState.isSearchActive && chatContainer.children.length === 0) {
+          renderEmptyState();
+        }
+        return;
+      }
+
+      if (appState.currentIndex >= activeDataset.length) {
+        loadingIndicator.style.display = "none";
+        return;
+      }
+
+      loadingIndicator.style.display = "block";
+      const endIndex = Math.min(appState.currentIndex + chunkSize, activeDataset.length);
+      const fragment = document.createDocumentFragment();
+
+      const terms = appState.isSearchActive ? appState.normalizedTerms : [];
+      for (let i = appState.currentIndex; i < endIndex; i++) {
+        fragment.appendChild(createMessageElement(activeDataset[i], terms));
+      }
+
+      chatContainer.appendChild(fragment);
+      appState.currentIndex = endIndex;
+      loadingIndicator.style.display = appState.currentIndex >= activeDataset.length ? "none" : "block";
+    }
+
+    function updateScrollBottomButton() {
+      if (appState.currentView !== "chat") {
+        scrollToBottomBtn.classList.remove("visible");
+        return;
+      }
+      const activeDataset = appState.isSearchActive ? appState.filteredMessages : appState.allMessages;
+      const distanceToBottom = chatContainer.scrollHeight - (chatContainer.scrollTop + chatContainer.clientHeight);
+      const hasUnrendered = appState.currentIndex < activeDataset.length;
+      if (distanceToBottom > 350 || hasUnrendered) {
+        scrollToBottomBtn.classList.add("visible");
+      } else {
+        scrollToBottomBtn.classList.remove("visible");
+      }
+    }
+
+    chatContainer.addEventListener("scroll", function() {
+      if (chatContainer.scrollTop + chatContainer.clientHeight >= chatContainer.scrollHeight - 100) {
+        const activeDataset = appState.isSearchActive ? appState.filteredMessages : appState.allMessages;
+        if (appState.currentIndex < activeDataset.length) {
+          renderNextBatch();
+        }
+      }
+      updateScrollBottomButton();
+    });
+
+    function scrollToBottom(options = {}) {
+      const behavior = options.behavior || "smooth";
+      const activeDataset = appState.isSearchActive ? appState.filteredMessages : appState.allMessages;
+      if (activeDataset.length === 0) return;
+
+      if (appState.currentIndex < activeDataset.length) {
+        const fragment = document.createDocumentFragment();
+        const terms = appState.isSearchActive ? appState.normalizedTerms : [];
+        for (let i = appState.currentIndex; i < activeDataset.length; i++) {
+          fragment.appendChild(createMessageElement(activeDataset[i], terms));
+        }
+        chatContainer.appendChild(fragment);
+        appState.currentIndex = activeDataset.length;
+        loadingIndicator.style.display = "none";
+      }
+
+      requestAnimationFrame(() => {
+        chatContainer.scrollTo({
+          top: chatContainer.scrollHeight,
+          behavior: behavior
+        });
+        setTimeout(updateScrollBottomButton, behavior === "smooth" ? 350 : 50);
+      });
+    }
+
+    scrollToBottomBtn.addEventListener("click", scrollToBottom);
+
+    function matchMessage(item, terms, filters) {
+      if (filters.sender && filters.sender !== "ALL") {
+        if (item.type === "system" || item.sender !== filters.sender) {
+          return false;
+        }
+      }
+
+      if (filters.mediaOnly) {
+        if (!item.attachment) return false;
+      }
+
+      if (filters.dateFrom !== null && item.timestamp < filters.dateFrom) {
+        return false;
+      }
+      if (filters.dateTo !== null && item.timestamp > filters.dateTo) {
+        return false;
+      }
+
+      if (terms.length > 0) {
+        const target = item._searchIndex;
+        for (let i = 0; i < terms.length; i++) {
+          if (!target.includes(terms[i])) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+    }
+
+    function updateSearchStats(count, total) {
+      if (!appState.isSearchActive) {
+        searchStats.textContent = "";
+        return;
+      }
+      searchStats.innerHTML = `Found: <span class="highlight-count">${count.toLocaleString()}</span> of ${total.toLocaleString()}`;
+    }
+
+    function applySearchAndFilter() {
+      const rawQuery = searchInput.value.trim();
+      appState.searchQuery = rawQuery;
+      searchClearBtn.style.display = rawQuery.length > 0 ? "block" : "none";
+
+      const terms = rawQuery
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(t => t.length > 0);
+      appState.normalizedTerms = terms;
+
+      const dateFromVal = dateFromInput.value;
+      const dateToVal = dateToInput.value;
+
+      appState.filters.sender = senderFilter.value;
+      appState.filters.dateFrom = dateFromVal ? new Date(dateFromVal + "T00:00:00").getTime() : null;
+      appState.filters.dateTo = dateToVal ? new Date(dateToVal + "T23:59:59").getTime() : null;
+      appState.filters.mediaOnly = mediaOnlyCheckbox.checked;
+
+      const hasActiveFilters = appState.filters.sender !== "ALL" ||
+        appState.filters.dateFrom !== null ||
+        appState.filters.dateTo !== null ||
+        appState.filters.mediaOnly;
+
+      const wasActive = appState.isSearchActive;
+      appState.isSearchActive = terms.length > 0 || hasActiveFilters;
+
+      if (!wasActive && appState.isSearchActive) {
+        appState.lastScrollTop = chatContainer.scrollTop;
+      }
+
+      if (appState.isSearchActive) {
+        appState.filteredMessages = appState.allMessages.filter(item => 
+          matchMessage(item, terms, appState.filters)
+        );
+        updateSearchStats(appState.filteredMessages.length, appState.allMessages.length);
+      } else {
+        appState.filteredMessages = [];
+        updateSearchStats(0, appState.allMessages.length);
+      }
+
+      chatContainer.innerHTML = "";
+      appState.currentIndex = 0;
+      chatContainer.scrollTop = 0;
+      renderNextBatch();
+
+      if (!appState.isSearchActive && wasActive) {
+        chatContainer.scrollTop = appState.lastScrollTop;
+      }
+      updateScrollBottomButton();
+    }
+
+    let debounceTimer = null;
+    function debouncedSearch() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(applySearchAndFilter, 200);
+    }
+
+    searchInput.addEventListener("input", function() {
+      searchClearBtn.style.display = searchInput.value.length > 0 ? "block" : "none";
+      debouncedSearch();
+    });
+
+    searchClearBtn.addEventListener("click", function() {
+      searchInput.value = "";
+      searchClearBtn.style.display = "none";
+      searchInput.focus();
+      applySearchAndFilter();
+    });
+
+    senderFilter.addEventListener("change", applySearchAndFilter);
+    dateFromInput.addEventListener("change", applySearchAndFilter);
+    dateToInput.addEventListener("change", applySearchAndFilter);
+    mediaOnlyCheckbox.addEventListener("change", applySearchAndFilter);
+
+    resetFiltersBtn.addEventListener("click", function() {
+      searchInput.value = "";
+      searchClearBtn.style.display = "none";
+      senderFilter.value = "ALL";
+      dateFromInput.value = "";
+      dateToInput.value = "";
+      mediaOnlyCheckbox.checked = false;
+      applySearchAndFilter();
+    });
+
+    // Keyboard Shortcuts
+    document.addEventListener("keydown", function(e) {
+      // Ctrl+F / Cmd+F: Focus search input
+      if ((e.ctrlKey || e.metaKey) && (e.key === "f" || e.key === "F")) {
+        e.preventDefault();
+        searchInput.focus();
+        searchInput.select();
+      }
+      // Escape: clear search input if active
+      if (e.key === "Escape") {
+        if (messageContextMenu && messageContextMenu.style.display === "block") {
+          hideContextMenu();
+          return;
+        }
+        if (searchInput === document.activeElement || searchInput.value.length > 0) {
+          searchInput.value = "";
+          searchClearBtn.style.display = "none";
+          searchInput.blur();
+          applySearchAndFilter();
+        }
+      }
+      // End key: jump to bottom when viewing chat and not focused in input
+      if (e.key === "End" && appState.currentView === "chat" && document.activeElement !== searchInput && document.activeElement !== gallerySearchInput) {
+        e.preventDefault();
+        scrollToBottom();
+      }
+    });
+
+    // Message Context Menu Controller
+    function hideContextMenu() {
+      if (messageContextMenu) {
+        messageContextMenu.style.display = "none";
+        messageContextMenu.setAttribute("aria-hidden", "true");
+        contextMenuTargetMessageId = null;
+      }
+    }
+
+    chatContainer.addEventListener("contextmenu", function(e) {
+      const msgEl = e.target.closest(".message, .system-message");
+      if (!msgEl) {
+        hideContextMenu();
+        return;
+      }
+
+      const rawId = msgEl.id ? msgEl.id.replace("msg-", "") : null;
+      if (!rawId) {
+        hideContextMenu();
+        return;
+      }
+      const messageId = parseInt(rawId, 10);
+      if (isNaN(messageId)) {
+        hideContextMenu();
+        return;
+      }
+
+      e.preventDefault();
+      contextMenuTargetMessageId = messageId;
+
+      messageContextMenu.style.display = "block";
+      messageContextMenu.setAttribute("aria-hidden", "false");
+
+      const menuWidth = messageContextMenu.offsetWidth || 190;
+      const menuHeight = messageContextMenu.offsetHeight || 44;
+      const padding = 10;
+
+      let posX = e.clientX;
+      let posY = e.clientY;
+
+      if (posX + menuWidth > window.innerWidth - padding) {
+        posX = window.innerWidth - menuWidth - padding;
+      }
+      if (posY + menuHeight > window.innerHeight - padding) {
+        posY = window.innerHeight - menuHeight - padding;
+      }
+
+      messageContextMenu.style.left = `${Math.max(padding, posX)}px`;
+      messageContextMenu.style.top = `${Math.max(padding, posY)}px`;
+    });
+
+    contextMenuGoHistory.addEventListener("click", function() {
+      if (contextMenuTargetMessageId !== null) {
+        const targetId = contextMenuTargetMessageId;
+        hideContextMenu();
+        jumpToChatMessage(targetId, { resetSearch: true });
+      }
+    });
+
+    document.addEventListener("click", function(e) {
+      if (messageContextMenu && messageContextMenu.style.display === "block") {
+        if (!messageContextMenu.contains(e.target)) {
+          hideContextMenu();
+        }
+      }
+    });
+
+    chatContainer.addEventListener("scroll", hideContextMenu);
+    window.addEventListener("resize", hideContextMenu);
+
+    function populateSenderFilter(messages) {
+      const senders = new Set();
+      for (let i = 0; i < messages.length; i++) {
+        if (messages[i].type === "message" && messages[i].sender) {
+          senders.add(messages[i].sender);
+        }
+      }
+      senderFilter.innerHTML = '<option value="ALL">All participants</option>';
+      Array.from(senders).sort().forEach(sender => {
+        const opt = document.createElement("option");
+        opt.value = sender;
+        opt.textContent = sender;
+        senderFilter.appendChild(opt);
+      });
+    }
+
+    function configureDateBounds(messages) {
+      let minTs = Infinity;
+      let maxTs = -Infinity;
+      for (let i = 0; i < messages.length; i++) {
+        const ts = messages[i].timestamp;
+        if (ts > 0) {
+          if (ts < minTs) minTs = ts;
+          if (ts > maxTs) maxTs = ts;
+        }
+      }
+      if (minTs !== Infinity && maxTs !== -Infinity) {
+        const formatDateToLocalISO = (timestamp) => {
+          const dateObj = new Date(timestamp);
+          const yearStr = dateObj.getFullYear();
+          const monthStr = String(dateObj.getMonth() + 1).padStart(2, "0");
+          const dayStr = String(dateObj.getDate()).padStart(2, "0");
+          return `${yearStr}-${monthStr}-${dayStr}`;
+        };
+        const minDateStr = formatDateToLocalISO(minTs);
+        const maxDateStr = formatDateToLocalISO(maxTs);
+        dateFromInput.min = minDateStr;
+        dateFromInput.max = maxDateStr;
+        dateToInput.min = minDateStr;
+        dateToInput.max = maxDateStr;
+      }
+    }
+
+    function parseChat(rawText) {
+      const headerRegex = /^(\d{2}[./]\d{2}[./]\d{2,4}),?\s+(\d{1,2}:\d{2}(?::\d{2})?(?:\s*[AaPp][Mm])?)\s*-\s*/gm;
+      const starts = [];
+      let match;
+      while ((match = headerRegex.exec(rawText)) !== null) {
+        starts.push({
+          index: match.index,
+          headerLength: match[0].length,
+          date: match[1],
+          time: match[2]
+        });
+      }
+
+      const parsed = [];
+      for (let i = 0; i < starts.length; i++) {
+        const cur = starts[i];
+        const nextIndex = (i + 1 < starts.length) ? starts[i + 1].index : rawText.length;
+        const body = rawText.slice(cur.index + cur.headerLength, nextIndex).trim();
+        const timestamp = parseDateToTimestamp(cur.date, cur.time);
+
+        const senderMatch = body.match(/^([^:\n]+?):\s*([\s\S]*)$/);
+        if (senderMatch) {
+          const sender = senderMatch[1].trim();
+          const rawMsgText = senderMatch[2];
+          const { attachment, cleanText } = extractAttachment(rawMsgText);
+          const searchTarget = `${sender} ${cleanText} ${attachment ? attachment.fileName : ''}`.toLowerCase();
+
+          parsed.push({
+            id: i,
+            type: "message",
+            date: cur.date,
+            time: cur.time,
+            timestamp,
+            sender,
+            text: rawMsgText,
+            attachment,
+            _searchIndex: searchTarget
+          });
+        } else {
+          const { attachment, cleanText } = extractAttachment(body);
+          const searchTarget = `${body} ${attachment ? attachment.fileName : ''}`.toLowerCase();
+          parsed.push({
+            id: i,
+            type: "system",
+            date: cur.date,
+            time: cur.time,
+            timestamp,
+            sender: "",
+            text: body,
+            attachment,
+            _searchIndex: searchTarget
+          });
+        }
+      }
+      // Build media index and link attachments to media items
+      appState.mediaIndex = buildMediaIndex(parsed);
+      return parsed;
+    }
+
+    // Lightbox Modal Controller
+    function openLightbox(mediaIdOrIndex, customList = null) {
+      let list = customList;
+      let index = 0;
+
+      if (!list) {
+        list = appState.mediaIndex;
+        index = list.findIndex(m => m.id === mediaIdOrIndex);
+      } else {
+        index = typeof mediaIdOrIndex === 'number' ? mediaIdOrIndex : 0;
+      }
+
+      if (index === -1 || !list[index]) return;
+
+      lightboxState.isOpen = true;
+      lightboxState.mediaList = list;
+      lightboxState.currentIndex = index;
+      lightboxState.zoomLevel = 1.0;
+      lightboxState.panOffset = { x: 0, y: 0 };
+
+      lightboxModal.style.display = "flex";
+      lightboxModal.setAttribute("aria-hidden", "false");
+      renderLightboxMedia();
+    }
+
+    function closeLightbox() {
+      if (!lightboxState.isOpen) return;
+      lightboxState.isOpen = false;
+      lightboxModal.style.display = "none";
+      lightboxModal.setAttribute("aria-hidden", "true");
+      stopLightboxAudio();
+      lightboxViewport.innerHTML = "";
+    }
+
+    function stopLightboxAudio() {
+      if (lightboxState.audioInstance) {
+        lightboxState.audioInstance.pause();
+        lightboxState.audioInstance = null;
+      }
+    }
+
+    function showPrevMedia() {
+      if (!lightboxState.isOpen || lightboxState.mediaList.length === 0) return;
+      if (lightboxState.currentIndex > 0) {
+        lightboxState.currentIndex--;
+        lightboxState.zoomLevel = 1.0;
+        lightboxState.panOffset = { x: 0, y: 0 };
+        renderLightboxMedia();
+      }
+    }
+
+    function showNextMedia() {
+      if (!lightboxState.isOpen || lightboxState.mediaList.length === 0) return;
+      if (lightboxState.currentIndex < lightboxState.mediaList.length - 1) {
+        lightboxState.currentIndex++;
+        lightboxState.zoomLevel = 1.0;
+        lightboxState.panOffset = { x: 0, y: 0 };
+        renderLightboxMedia();
+      }
+    }
+
+    function renderLightboxMedia() {
+      stopLightboxAudio();
+      const item = lightboxState.mediaList[lightboxState.currentIndex];
+      if (!item) return;
+
+      lightboxTitle.textContent = item.fileName;
+      lightboxSender.textContent = item.sender;
+      lightboxCounter.textContent = `${lightboxState.currentIndex + 1} / ${lightboxState.mediaList.length}`;
+      lightboxBtnDownload.href = item.fileUrl;
+      lightboxBtnDownload.download = item.fileName;
+      lightboxCaption.textContent = item.caption || "";
+      lightboxCaption.style.display = item.caption ? "block" : "none";
+
+      lightboxBtnPrev.style.visibility = lightboxState.currentIndex > 0 ? "visible" : "hidden";
+      lightboxBtnNext.style.visibility = lightboxState.currentIndex < lightboxState.mediaList.length - 1 ? "visible" : "hidden";
+
+      lightboxViewport.innerHTML = "";
+
+      if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(item.extension)) {
+        const img = document.createElement("img");
+        img.src = item.fileUrl;
+        img.alt = item.fileName;
+        applyImageTransform(img);
+
+        // Wheel zoom
+        img.addEventListener("wheel", (e) => {
+          e.preventDefault();
+          const zoomFactor = e.deltaY < 0 ? 1.2 : 0.8;
+          lightboxState.zoomLevel = Math.min(4.0, Math.max(1.0, lightboxState.zoomLevel * zoomFactor));
+          if (lightboxState.zoomLevel === 1.0) {
+            lightboxState.panOffset = { x: 0, y: 0 };
+          }
+          applyImageTransform(img);
+        }, { passive: false });
+
+        // Double click reset
+        img.addEventListener("dblclick", () => {
+          lightboxState.zoomLevel = lightboxState.zoomLevel > 1.0 ? 1.0 : 2.0;
+          lightboxState.panOffset = { x: 0, y: 0 };
+          applyImageTransform(img);
+        });
+
+        // Drag to pan
+        img.addEventListener("mousedown", (e) => {
+          if (lightboxState.zoomLevel <= 1.0) return;
+          lightboxState.isDragging = true;
+          lightboxState.dragStart = { x: e.clientX - lightboxState.panOffset.x, y: e.clientY - lightboxState.panOffset.y };
+          img.classList.add("panning");
+        });
+
+        img.onerror = () => {
+          lightboxViewport.innerHTML = `<div class="missing-placeholder"><span>⚠️ File not found</span><small>${escapeHtml(item.fileName)}</small></div>`;
+        };
+
+        lightboxViewport.appendChild(img);
+      } else if (['mp4', 'webm', 'mov'].includes(item.extension)) {
+        const video = document.createElement("video");
+        video.src = item.fileUrl;
+        video.controls = true;
+        video.autoplay = true;
+        video.playsInline = true;
+        video.onerror = () => {
+          lightboxViewport.innerHTML = `<div class="missing-placeholder"><span>⚠️ Video unavailable</span><small>${escapeHtml(item.fileName)}</small></div>`;
+        };
+        lightboxViewport.appendChild(video);
+      } else if (['opus', 'ogg', 'mp3', 'm4a', 'wav', 'aac'].includes(item.extension)) {
+        renderLightboxAudio(item);
+      } else {
+        // Document card
+        const docCard = document.createElement("div");
+        docCard.className = "lightbox-doc-card";
+        docCard.innerHTML = `
+          <div class="lightbox-doc-icon">📄</div>
+          <div class="lightbox-doc-name">${escapeHtml(item.fileName)}</div>
+          <div style="font-size: 0.85rem; color: #8696a0;">${item.sender} &bull; ${item.date} ${item.time}</div>
+          <a class="lightbox-doc-download-btn" href="${item.fileUrl}" download="${escapeHtml(item.fileName)}">⬇ Open / Download file</a>
+        `;
+        lightboxViewport.appendChild(docCard);
+      }
+    }
+
+    function applyImageTransform(img) {
+      img.style.transform = `translate(${lightboxState.panOffset.x}px, ${lightboxState.panOffset.y}px) scale(${lightboxState.zoomLevel})`;
+    }
+
+    function renderLightboxAudio(item) {
+      const card = document.createElement("div");
+      card.className = "lightbox-audio-card";
+      card.innerHTML = `
+        <div class="lightbox-audio-meta">
+          <div class="lightbox-audio-icon">🎙️</div>
+          <div class="lightbox-audio-details">
+            <div class="lightbox-audio-title">${escapeHtml(item.fileName)}</div>
+            <div class="lightbox-audio-sub">${escapeHtml(item.sender)} &bull; ${item.date} ${item.time}</div>
+          </div>
+        </div>
+        <div class="lightbox-audio-controls">
+          <button class="lightbox-audio-play-btn" id="lightbox-audio-play">▶</button>
+          <input type="range" class="lightbox-audio-seekbar" id="lightbox-audio-seek" value="0" min="0" max="100" step="0.1">
+          <span class="lightbox-audio-time" id="lightbox-audio-time">0:00</span>
+          <button class="lightbox-audio-speed-btn" id="lightbox-audio-speed">${lightboxState.audioPlaybackSpeed}x</button>
+        </div>
+        <div id="lightbox-audio-error-box" style="display: none;"></div>
+      `;
+
+      lightboxViewport.appendChild(card);
+
+      const playBtn = card.querySelector("#lightbox-audio-play");
+      const seekbar = card.querySelector("#lightbox-audio-seek");
+      const timeSpan = card.querySelector("#lightbox-audio-time");
+      const speedBtn = card.querySelector("#lightbox-audio-speed");
+      const errorBox = card.querySelector("#lightbox-audio-error-box");
+
+      const audio = new Audio();
+      audio.src = item.fileUrl;
+      audio.playbackRate = lightboxState.audioPlaybackSpeed;
+      lightboxState.audioInstance = audio;
+
+      function formatAudioTime(seconds) {
+        if (!seconds || isNaN(seconds)) return "0:00";
+        const m = Math.floor(seconds / 60);
+        const s = Math.floor(seconds % 60);
+        return `${m}:${s < 10 ? '0' : ''}${s}`;
+      }
+
+      playBtn.addEventListener("click", () => {
+        if (audio.paused) {
+          audio.play().catch(err => {
+            errorBox.style.display = "block";
+            errorBox.innerHTML = `<a class="audio-fallback-link" href="${item.fileUrl}" download>⚠️ Could not play .opus in browser. Download file</a>`;
+          });
+        } else {
+          audio.pause();
+        }
+      });
+
+      audio.addEventListener("play", () => {
+        playBtn.textContent = "⏸";
+      });
+
+      audio.addEventListener("pause", () => {
+        playBtn.textContent = "▶";
+      });
+
+      audio.addEventListener("timeupdate", () => {
+        if (!audio.duration) return;
+        seekbar.value = (audio.currentTime / audio.duration) * 100;
+        timeSpan.textContent = formatAudioTime(audio.currentTime);
+      });
+
+      audio.addEventListener("ended", () => {
+        playBtn.textContent = "▶";
+        seekbar.value = 0;
+      });
+
+      seekbar.addEventListener("input", () => {
+        if (audio.duration) {
+          audio.currentTime = (seekbar.value / 100) * audio.duration;
+        }
+      });
+
+      speedBtn.addEventListener("click", () => {
+        const speeds = [1.0, 1.5, 2.0];
+        let curIdx = speeds.indexOf(lightboxState.audioPlaybackSpeed);
+        curIdx = (curIdx + 1) % speeds.length;
+        lightboxState.audioPlaybackSpeed = speeds[curIdx];
+        audio.playbackRate = lightboxState.audioPlaybackSpeed;
+        speedBtn.textContent = `${lightboxState.audioPlaybackSpeed}x`;
+      });
+
+      audio.addEventListener("error", () => {
+        errorBox.style.display = "block";
+        errorBox.innerHTML = `<a class="audio-fallback-link" href="${item.fileUrl}" download>⚠️ Could not play .opus in browser. Download file</a>`;
+      });
+    }
+
+    // Jump to Chat Message Protocol
+    function jumpToChatMessage(messageId, options = {}) {
+      closeLightbox();
+      // If resetSearch option is passed, or if target message is not in active search, reset search
+      if (appState.isSearchActive && (options.resetSearch || !appState.filteredMessages.some(m => m.id === messageId))) {
+        searchInput.value = "";
+        searchClearBtn.style.display = "none";
+        senderFilter.value = "ALL";
+        dateFromInput.value = "";
+        dateToInput.value = "";
+        mediaOnlyCheckbox.checked = false;
+        appState.isSearchActive = false;
+        appState.filteredMessages = [];
+        appState.normalizedTerms = [];
+        updateSearchStats(0, appState.allMessages.length);
+        chatContainer.innerHTML = "";
+        appState.currentIndex = 0;
+        renderNextBatch();
+      }
+      switchView("chat");
+
+      // Ensure target message is rendered
+      const activeDataset = appState.isSearchActive ? appState.filteredMessages : appState.allMessages;
+      const targetIndexInActive = activeDataset.findIndex(m => m.id === messageId);
+      if (targetIndexInActive !== -1 && targetIndexInActive >= appState.currentIndex) {
+        const targetChunkEnd = Math.min(activeDataset.length, Math.ceil((targetIndexInActive + 1) / chunkSize) * chunkSize);
+
+        const fragment = document.createDocumentFragment();
+        const terms = appState.isSearchActive ? appState.normalizedTerms : [];
+        for (let i = appState.currentIndex; i < targetChunkEnd; i++) {
+          fragment.appendChild(createMessageElement(activeDataset[i], terms));
+        }
+        chatContainer.appendChild(fragment);
+        appState.currentIndex = targetChunkEnd;
+        loadingIndicator.style.display = appState.currentIndex >= activeDataset.length ? "none" : "block";
+      }
+      // Wait for layout reflow and scroll to target
+      requestAnimationFrame(() => {
+        const el = document.getElementById(`msg-${messageId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'auto', block: 'center' });
+          el.classList.add('highlight-pulse');
+          setTimeout(() => el.classList.remove('highlight-pulse'), 2500);
+
+          // If the message has an unloaded image, re-align once loaded to prevent height-shift drift
+          const img = el.querySelector("img.media-preview");
+          if (img && !img.complete) {
+            img.addEventListener("load", () => {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, { once: true });
+          }
+        }
+      });
+    }
+
+    // Gallery Controller & Batch Rendering
+    const galleryChunkSize = 60;
+    let galleryObserver = null;
+
+    function initGalleryObserver() {
+      if (galleryObserver) galleryObserver.disconnect();
+      galleryObserver = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && appState.currentView === "media") {
+          if (appState.galleryCurrentIndex < appState.filteredMedia.length) {
+            renderNextGalleryBatch();
+          }
+        }
+      }, { rootMargin: '400px' });
+      galleryObserver.observe(gallerySentinel);
+    }
+
+    function filterGalleryMedia() {
+      let list = appState.mediaIndex;
+      if (appState.galleryCategory !== "all") {
+        list = list.filter(m => m.fileType === appState.galleryCategory);
+      }
+      if (appState.gallerySearchQuery) {
+        const q = appState.gallerySearchQuery.toLowerCase();
+        list = list.filter(m => 
+          m.fileName.toLowerCase().includes(q) || 
+          m.caption.toLowerCase().includes(q) ||
+          m.sender.toLowerCase().includes(q)
+        );
+      }
+      appState.filteredMedia = list;
+      appState.galleryCurrentIndex = 0;
+      galleryGrid.innerHTML = "";
+      renderNextGalleryBatch();
+    }
+
+    function updateGalleryCounts() {
+      const total = appState.mediaIndex.length;
+      totalMediaCountSpan.textContent = total.toLocaleString();
+      countAllSpan.textContent = total.toLocaleString();
+
+      const photoVideoCount = appState.mediaIndex.filter(m => m.fileType === "photo_video").length;
+      const voiceCount = appState.mediaIndex.filter(m => m.fileType === "voice").length;
+      const docCount = appState.mediaIndex.filter(m => m.fileType === "document").length;
+
+      countPhotoVideoSpan.textContent = photoVideoCount.toLocaleString();
+      countVoiceSpan.textContent = voiceCount.toLocaleString();
+      countDocSpan.textContent = docCount.toLocaleString();
+    }
+
+    function renderNextGalleryBatch() {
+      const activeList = appState.filteredMedia;
+      if (activeList.length === 0) {
+        galleryLoadingIndicator.style.display = "none";
+        if (galleryGrid.children.length === 0) {
+          galleryGrid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: #667781; padding: 40px;">No media files found</div>`;
+        }
+        return;
+      }
+
+      if (appState.galleryCurrentIndex >= activeList.length) {
+        galleryLoadingIndicator.style.display = "none";
+        return;
+      }
+
+      galleryLoadingIndicator.style.display = "block";
+      const endIndex = Math.min(appState.galleryCurrentIndex + galleryChunkSize, activeList.length);
+      const fragment = document.createDocumentFragment();
+
+      for (let i = appState.galleryCurrentIndex; i < endIndex; i++) {
+        fragment.appendChild(createGalleryCard(activeList[i], i));
+      }
+
+      galleryGrid.appendChild(fragment);
+      appState.galleryCurrentIndex = endIndex;
+      galleryLoadingIndicator.style.display = appState.galleryCurrentIndex >= activeList.length ? "none" : "block";
+    }
+
+    function createGalleryCard(item, filteredIndex) {
+      const card = document.createElement("div");
+      card.className = "gallery-card";
+
+      card.onclick = () => {
+        openLightbox(filteredIndex, appState.filteredMedia);
+      };
+
+      if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(item.extension)) {
+        const img = document.createElement("img");
+        img.src = item.fileUrl;
+        img.loading = "lazy";
+        img.decoding = "async";
+        img.alt = item.fileName;
+        img.onerror = () => {
+          card.innerHTML = `<div class="missing-placeholder"><span>⚠️ File not found</span><small>${escapeHtml(item.fileName)}</small></div>`;
+        };
+        card.appendChild(img);
+      } else if (['mp4', 'webm', 'mov'].includes(item.extension)) {
+        const video = document.createElement("video");
+        video.src = item.fileUrl;
+        video.preload = "none";
+        card.appendChild(video);
+
+        const badge = document.createElement("div");
+        badge.className = "gallery-badge-video";
+        badge.innerHTML = "▶ Video";
+        card.appendChild(badge);
+      } else if (item.fileType === "voice") {
+        card.className += " gallery-card-voice";
+        card.innerHTML = `
+          <div class="gallery-card-icon">🎙️</div>
+          <div class="gallery-card-title">${escapeHtml(item.fileName)}</div>
+          <button class="gallery-card-play-btn">▶ Listen</button>
+          <div class="gallery-card-meta">
+            <span>${escapeHtml(item.sender)}</span>
+            <span>${item.date}</span>
+          </div>
+        `;
+      } else {
+        // Document
+        card.className += " gallery-card-doc";
+        card.innerHTML = `
+          <div class="gallery-card-icon">📄</div>
+          <div class="gallery-card-title">${escapeHtml(item.fileName)}</div>
+          <div class="gallery-card-meta">
+            <span>${item.extension.toUpperCase()}</span>
+            <span>${item.date}</span>
+          </div>
+        `;
+      }
+
+      return card;
+    }
+
+    // View Switching
+    function switchView(targetView) {
+      appState.currentView = targetView;
+      if (targetView === "chat") {
+        viewTabChat.classList.add("active");
+        viewTabMedia.classList.remove("active");
+        chatContainer.style.display = "flex";
+        searchPanel.style.display = "flex";
+        mediaGalleryContainer.style.display = "none";
+        loadingIndicator.style.display = appState.currentIndex >= (appState.isSearchActive ? appState.filteredMessages.length : appState.allMessages.length) ? "none" : "block";
+      } else {
+        viewTabMedia.classList.add("active");
+        viewTabChat.classList.remove("active");
+        chatContainer.style.display = "none";
+        searchPanel.style.display = "none";
+        loadingIndicator.style.display = "none";
+        mediaGalleryContainer.style.display = "flex";
+        filterGalleryMedia();
+      }
+      updateScrollBottomButton();
+    }
+
+    function initChatDataset(messages, countStatus) {
+      appState.allMessages = messages;
+      appState.filteredMessages = [];
+      appState.isSearchActive = false;
+      appState.currentIndex = 0;
+      chatContainer.innerHTML = "";
+      statusSpan.textContent = countStatus;
+      populateSenderFilter(messages);
+      configureDateBounds(messages);
+      updateGalleryCounts();
+      initGalleryObserver();
+      renderNextBatch();
+      scrollToBottom({ behavior: 'auto' });
+    }
+
+    // Event Listeners: View Switching
+    viewTabChat.addEventListener("click", () => switchView("chat"));
+    viewTabMedia.addEventListener("click", () => switchView("media"));
+
+    // Event Listeners: Gallery Tabs and Search
+    galleryTabs.forEach(tab => {
+      tab.addEventListener("click", () => {
+        galleryTabs.forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+        appState.galleryCategory = tab.dataset.filter || "all";
+        filterGalleryMedia();
+      });
+    });
+
+    gallerySearchInput.addEventListener("input", () => {
+      appState.gallerySearchQuery = gallerySearchInput.value.trim();
+      filterGalleryMedia();
+    });
+
+    // Event Listeners: Lightbox Controls
+    lightboxBtnClose.addEventListener("click", closeLightbox);
+    lightboxOverlay.addEventListener("click", closeLightbox);
+    lightboxBtnPrev.addEventListener("click", showPrevMedia);
+    lightboxBtnNext.addEventListener("click", showNextMedia);
+
+    lightboxBtnJump.addEventListener("click", () => {
+      const item = lightboxState.mediaList[lightboxState.currentIndex];
+      if (item && typeof item.messageId === 'number') {
+        jumpToChatMessage(item.messageId);
+      }
+    });
+    // Global drag handlers for lightbox image pan
+    window.addEventListener("mousemove", (e) => {
+      if (!lightboxState.isDragging) return;
+      const img = lightboxViewport.querySelector("img");
+      if (!img) return;
+      lightboxState.panOffset = {
+        x: e.clientX - lightboxState.dragStart.x,
+        y: e.clientY - lightboxState.dragStart.y
+      };
+      applyImageTransform(img);
+    });
+
+    window.addEventListener("mouseup", () => {
+      if (lightboxState.isDragging) {
+        lightboxState.isDragging = false;
+        const img = lightboxViewport.querySelector("img");
+        if (img) img.classList.remove("panning");
+      }
+    });
+
+
+    // Keyboard navigation
+    window.addEventListener("keydown", (e) => {
+      if (lightboxState.isOpen) {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          closeLightbox();
+        } else if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          showPrevMedia();
+        } else if (e.key === "ArrowRight") {
+          e.preventDefault();
+          showNextMedia();
+        } else if (e.key === " ") {
+          if (lightboxState.audioInstance) {
+            e.preventDefault();
+            const audio = lightboxState.audioInstance;
+            if (audio.paused) audio.play();
+            else audio.pause();
+          } else {
+            const video = lightboxViewport.querySelector("video");
+            if (video) {
+              e.preventDefault();
+              if (video.paused) video.play();
+              else video.pause();
+            }
+          }
+        }
+      }
+    });
+
+    function processFiles(fileList) {
+      if (!fileList || fileList.length === 0) return;
+      const files = Array.from(fileList);
+
+      // Revoke old object URLs if any to free memory
+      if (appState.mediaFileMap && appState.mediaFileMap.size > 0) {
+        for (const url of appState.mediaFileMap.values()) {
+          try { URL.revokeObjectURL(url); } catch (_) {}
+        }
+        appState.mediaFileMap.clear();
+      }
+
+      // Find chat .txt file
+      let chatFile = files.find(f => f.name === "_chat.txt");
+      if (!chatFile) {
+        chatFile = files.find(f => f.name.toLowerCase().endsWith(".txt"));
+      }
+
+      if (!chatFile) {
+        statusSpan.textContent = "Error: No .txt chat file found in selection";
+        return;
+      }
+
+      // Register media files into map
+      let mediaCount = 0;
+      for (const f of files) {
+        if (f === chatFile) continue;
+        // Index by filename
+        appState.mediaFileMap.set(f.name, URL.createObjectURL(f));
+        mediaCount++;
+      }
+
+      statusSpan.textContent = `Reading ${chatFile.name}...`;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const parsed = parseChat(e.target.result);
+        const statusMsg = mediaCount > 0
+          ? `Loaded ${parsed.length.toLocaleString()} messages & ${mediaCount.toLocaleString()} media files`
+          : `Messages: ${parsed.length.toLocaleString()}`;
+        initChatDataset(parsed, statusMsg);
+      };
+      reader.readAsText(chatFile, "UTF-8");
+    }
+
+    document.getElementById('fileInput').addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      processFiles([file]);
+    });
+
+    const folderInput = document.getElementById('folderInput');
+    if (folderInput) {
+      folderInput.addEventListener('change', function(event) {
+        if (event.target.files && event.target.files.length > 0) {
+          processFiles(event.target.files);
+        }
+      });
+    }
+
+    // Drag and drop support
+    const dropOverlay = document.getElementById('drop-overlay');
+    let dragCounter = 0;
+
+    window.addEventListener('dragenter', function(e) {
+      e.preventDefault();
+      dragCounter++;
+      if (dropOverlay) dropOverlay.classList.add('active');
+    });
+
+    window.addEventListener('dragleave', function(e) {
+      e.preventDefault();
+      dragCounter--;
+      if (dragCounter <= 0) {
+        dragCounter = 0;
+        if (dropOverlay) dropOverlay.classList.remove('active');
+      }
+    });
+
+    window.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = 'copy';
+      }
+    });
+
+    window.addEventListener('drop', function(e) {
+      e.preventDefault();
+      dragCounter = 0;
+      if (dropOverlay) dropOverlay.classList.remove('active');
+
+      const dt = e.dataTransfer;
+      if (!dt) return;
+
+      if (dt.items && dt.items.length > 0 && typeof dt.items[0].webkitGetAsEntry === "function") {
+        const entries = [];
+        for (let i = 0; i < dt.items.length; i++) {
+          const entry = dt.items[i].webkitGetAsEntry();
+          if (entry) entries.push(entry);
+        }
+        if (entries.length > 0) {
+          readAllEntries(entries).then(files => {
+            if (files.length > 0) processFiles(files);
+          }).catch(() => {
+            if (dt.files && dt.files.length > 0) processFiles(dt.files);
+          });
+          return;
+        }
+      }
+
+      if (dt.files && dt.files.length > 0) {
+        processFiles(dt.files);
+      }
+    });
+
+    // Recursively read FileSystemEntries from dropped folder
+    async function readAllEntries(entries) {
+      const files = [];
+      async function traverse(entry) {
+        if (entry.isFile) {
+          const file = await new Promise((res, rej) => entry.file(res, rej));
+          files.push(file);
+        } else if (entry.isDirectory) {
+          const dirReader = entry.createReader();
+          const readBatch = () => new Promise((res, rej) => dirReader.readEntries(res, rej));
+          let batch;
+          do {
+            batch = await readBatch();
+            for (const child of batch) {
+              await traverse(child);
+            }
+          } while (batch && batch.length > 0);
+        }
+      }
+      for (const entry of entries) {
+        await traverse(entry);
+      }
+      return files;
+    }
+
+    // Auto-load default chat file if served or accessible via relative fetch
+    const defaultChatFile = "";
+    if (defaultChatFile) {
+      fetch(encodeURI(defaultChatFile))
+        .then(res => {
+          if (!res.ok) throw new Error("Fetch failed");
+          return res.text();
+        })
+        .then(text => {
+          const parsed = parseChat(text);
+          initChatDataset(parsed, `Loaded: ${parsed.length.toLocaleString()} messages`);
+        })
+        .catch(() => {
+          // Normal when opened via direct file:// protocol in browser without CORS
+        });
+    }
+  </script>
+</body>
+</html>

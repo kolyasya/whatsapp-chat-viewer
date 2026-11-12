@@ -37,9 +37,65 @@
       align-items: center;
       gap: 12px;
     }
-    #fileInput {
-      font-size: 0.9rem;
+    .file-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #fileInput, #folderInput {
+      font-size: 0.85rem;
       color: #fff;
+    }
+    .folder-input-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 4px;
+      color: #fff;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .folder-input-label:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+    #folderInput {
+      display: none;
+    }
+    .drop-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 168, 132, 0.88);
+      color: #fff;
+      z-index: 9999;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      border: 4px dashed #fff;
+      margin: 12px;
+      border-radius: 12px;
+    }
+    .drop-overlay.active {
+      display: flex;
+    }
+    .drop-overlay-icon {
+      font-size: 3.5rem;
+      margin-bottom: 12px;
+    }
+    .drop-overlay-text {
+      font-size: 1.3rem;
+      font-weight: 500;
+    }
+    .drop-overlay-sub {
+      font-size: 0.9rem;
+      opacity: 0.85;
+      margin-top: 6px;
     }
     #status {
       font-size: 0.85rem;
@@ -864,8 +920,12 @@
       </div>
     </div>
     <div class="controls">
-      <span id="status">Select export .txt file</span>
-      <input type="file" id="fileInput" accept=".txt">
+      <span id="status">Select export .txt file or folder</span>
+      <div class="file-input-wrapper">
+        <input type="file" id="fileInput" accept=".txt">
+        <label for="folderInput" class="folder-input-label" title="Select chat export folder with media">📁 Select folder</label>
+        <input type="file" id="folderInput" webkitdirectory directory multiple>
+      </div>
     </div>
   </header>
   
@@ -952,6 +1012,11 @@
     </div>
     <div class="lightbox-caption" id="lightbox-caption"></div>
   </div>
+  <div id="drop-overlay" class="drop-overlay">
+    <div class="drop-overlay-icon">📁</div>
+    <div class="drop-overlay-text">Drop WhatsApp chat export here</div>
+    <div class="drop-overlay-sub">Drop a chat folder or files (.txt and media attachments)</div>
+  </div>
   <script>
     const appState = {
       allMessages: [],
@@ -972,8 +1037,16 @@
       filteredMedia: [],
       galleryCurrentIndex: 0,
       galleryCategory: "all",
-      gallerySearchQuery: ""
+      gallerySearchQuery: "",
+      mediaFileMap: new Map()
     };
+
+    function resolveMediaUrl(fileName) {
+      if (appState.mediaFileMap && appState.mediaFileMap.has(fileName)) {
+        return appState.mediaFileMap.get(fileName);
+      }
+      return encodeURI(fileName);
+    }
 
     const lightboxState = {
       isOpen: false,
@@ -1120,7 +1193,7 @@
           id: mediaId,
           messageId: msg.id,
           fileName,
-          fileUrl: encodeURI(fileName),
+          fileUrl: resolveMediaUrl(fileName),
           fileType,
           extension: ext,
           sender: msg.sender || "System",
@@ -1168,7 +1241,7 @@
 
     function renderAttachment(fileName, terms, mediaIndexId) {
       const ext = fileName.split('.').pop().toLowerCase();
-      const encoded = encodeURI(fileName);
+      const mediaUrl = resolveMediaUrl(fileName);
       const mediaType = classifyMediaType(ext);
 
       const openModalHandler = (e) => {
@@ -1181,7 +1254,7 @@
       if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
         const img = document.createElement("img");
         img.className = "media-preview";
-        img.src = encoded;
+        img.src = mediaUrl;
         img.loading = "lazy";
         img.decoding = "async";
         img.alt = fileName;
@@ -1200,7 +1273,7 @@
       if (['mp4', 'webm', 'mov'].includes(ext)) {
         const video = document.createElement("video");
         video.className = "media-preview";
-        video.src = encoded;
+        video.src = mediaUrl;
         video.controls = true;
         video.preload = "none";
         video.onerror = () => {
@@ -1216,13 +1289,13 @@
       if (['opus', 'ogg', 'mp3', 'm4a', 'wav', 'aac'].includes(ext)) {
         const audio = document.createElement("audio");
         audio.className = "media-audio";
-        audio.src = encoded;
+        audio.src = mediaUrl;
         audio.controls = true;
         audio.preload = "none";
         audio.onerror = () => {
           const fallback = document.createElement('a');
           fallback.className = 'audio-fallback-link';
-          fallback.href = encoded;
+          fallback.href = mediaUrl;
           fallback.textContent = '⚠️ Could not play .opus in browser. Download file';
           audio.replaceWith(fallback);
         };
@@ -1231,7 +1304,7 @@
 
       const link = document.createElement("a");
       link.className = "file-attachment";
-      link.href = encoded;
+      link.href = mediaUrl;
       link.target = "_blank";
       link.innerHTML = `📎 ${highlightText(fileName, terms)}`;
       if (typeof mediaIndexId === 'number') {
@@ -2250,18 +2323,144 @@
       }
     });
 
-    document.getElementById('fileInput').addEventListener('change', function(event) {
-      const file = event.target.files[0];
-      if (!file) return;
+    function processFiles(fileList) {
+      if (!fileList || fileList.length === 0) return;
+      const files = Array.from(fileList);
 
-      statusSpan.textContent = `Reading: ${file.name}...`;
+      // Revoke old object URLs if any to free memory
+      if (appState.mediaFileMap && appState.mediaFileMap.size > 0) {
+        for (const url of appState.mediaFileMap.values()) {
+          try { URL.revokeObjectURL(url); } catch (_) {}
+        }
+        appState.mediaFileMap.clear();
+      }
+
+      // Find chat .txt file
+      let chatFile = files.find(f => f.name === "_chat.txt");
+      if (!chatFile) {
+        chatFile = files.find(f => f.name.toLowerCase().endsWith(".txt"));
+      }
+
+      if (!chatFile) {
+        statusSpan.textContent = "Error: No .txt chat file found in selection";
+        return;
+      }
+
+      // Register media files into map
+      let mediaCount = 0;
+      for (const f of files) {
+        if (f === chatFile) continue;
+        // Index by filename
+        appState.mediaFileMap.set(f.name, URL.createObjectURL(f));
+        mediaCount++;
+      }
+
+      statusSpan.textContent = `Reading ${chatFile.name}...`;
       const reader = new FileReader();
       reader.onload = function(e) {
         const parsed = parseChat(e.target.result);
-        initChatDataset(parsed, `Messages: ${parsed.length.toLocaleString()}`);
+        const statusMsg = mediaCount > 0
+          ? `Loaded ${parsed.length.toLocaleString()} messages & ${mediaCount.toLocaleString()} media files`
+          : `Messages: ${parsed.length.toLocaleString()}`;
+        initChatDataset(parsed, statusMsg);
       };
-      reader.readAsText(file, "UTF-8");
+      reader.readAsText(chatFile, "UTF-8");
+    }
+
+    document.getElementById('fileInput').addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      processFiles([file]);
     });
+
+    const folderInput = document.getElementById('folderInput');
+    if (folderInput) {
+      folderInput.addEventListener('change', function(event) {
+        if (event.target.files && event.target.files.length > 0) {
+          processFiles(event.target.files);
+        }
+      });
+    }
+
+    // Drag and drop support
+    const dropOverlay = document.getElementById('drop-overlay');
+    let dragCounter = 0;
+
+    window.addEventListener('dragenter', function(e) {
+      e.preventDefault();
+      dragCounter++;
+      if (dropOverlay) dropOverlay.classList.add('active');
+    });
+
+    window.addEventListener('dragleave', function(e) {
+      e.preventDefault();
+      dragCounter--;
+      if (dragCounter <= 0) {
+        dragCounter = 0;
+        if (dropOverlay) dropOverlay.classList.remove('active');
+      }
+    });
+
+    window.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = 'copy';
+      }
+    });
+
+    window.addEventListener('drop', function(e) {
+      e.preventDefault();
+      dragCounter = 0;
+      if (dropOverlay) dropOverlay.classList.remove('active');
+
+      const dt = e.dataTransfer;
+      if (!dt) return;
+
+      if (dt.items && dt.items.length > 0 && typeof dt.items[0].webkitGetAsEntry === "function") {
+        const entries = [];
+        for (let i = 0; i < dt.items.length; i++) {
+          const entry = dt.items[i].webkitGetAsEntry();
+          if (entry) entries.push(entry);
+        }
+        if (entries.length > 0) {
+          readAllEntries(entries).then(files => {
+            if (files.length > 0) processFiles(files);
+          }).catch(() => {
+            if (dt.files && dt.files.length > 0) processFiles(dt.files);
+          });
+          return;
+        }
+      }
+
+      if (dt.files && dt.files.length > 0) {
+        processFiles(dt.files);
+      }
+    });
+
+    // Recursively read FileSystemEntries from dropped folder
+    async function readAllEntries(entries) {
+      const files = [];
+      async function traverse(entry) {
+        if (entry.isFile) {
+          const file = await new Promise((res, rej) => entry.file(res, rej));
+          files.push(file);
+        } else if (entry.isDirectory) {
+          const dirReader = entry.createReader();
+          const readBatch = () => new Promise((res, rej) => dirReader.readEntries(res, rej));
+          let batch;
+          do {
+            batch = await readBatch();
+            for (const child of batch) {
+              await traverse(child);
+            }
+          } while (batch && batch.length > 0);
+        }
+      }
+      for (const entry of entries) {
+        await traverse(entry);
+      }
+      return files;
+    }
 
     // Auto-load default chat file if served or accessible via relative fetch
     const defaultChatFile = "";
