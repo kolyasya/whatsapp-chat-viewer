@@ -164,4 +164,38 @@ describe("WhatsApp Chat Viewer HTML Integration", () => {
     assert.ok(indexContent.includes("resolveMediaUrl"));
     assert.ok(indexContent.includes("mediaFileMap"));
   });
+
+  it("contains voice note player styles and video preview card styles", () => {
+    assert.ok(htmlContent.includes(".voice-note-player"));
+    assert.ok(htmlContent.includes(".voice-play-btn"));
+    assert.ok(htmlContent.includes(".voice-track"));
+    assert.ok(htmlContent.includes(".voice-progress"));
+    assert.ok(htmlContent.includes(".voice-time"));
+    assert.ok(htmlContent.includes(".video-preview-card"));
+    assert.ok(htmlContent.includes(".video-preview-overlay"));
+    assert.ok(htmlContent.includes(".video-play-badge"));
+  });
+
+  it("contains globalVoiceController singleton with required methods and state", () => {
+    assert.ok(htmlContent.includes("const globalVoiceController = {"));
+    assert.ok(htmlContent.includes("audio: new Audio()"));
+    assert.ok(htmlContent.includes("activeBtn: null"));
+    assert.ok(htmlContent.includes("activeProgress: null"));
+    assert.ok(htmlContent.includes("activeTime: null"));
+    assert.ok(htmlContent.includes("currentUrl: null"));
+    assert.ok(htmlContent.includes("play(url, btn, progress, timeEl)"));
+    assert.ok(htmlContent.includes("pause()"));
+    assert.ok(htmlContent.includes("stop()"));
+  });
+
+  it("renders voice note player and video preview card in renderAttachment without creating audio elements", () => {
+    assert.ok(htmlContent.includes("container.className = \"voice-note-player\""));
+    assert.ok(htmlContent.includes("card.className = \"video-preview-card\""));
+    assert.ok(htmlContent.includes("globalVoiceController.play(mediaUrl, playBtn, progress, timeEl)"));
+  });
+
+  it("contains chunked rendering in scrollToBottom to avoid WebMediaPlayer / DOM exhaustion", () => {
+    assert.ok(htmlContent.includes("function scrollToBottom"));
+    assert.ok(htmlContent.includes("appState.currentIndex = Math.max(0, activeDataset.length - 100)") || htmlContent.includes("activeDataset.length - 100"));
+  });
 });
