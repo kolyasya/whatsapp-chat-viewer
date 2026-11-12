@@ -1,6 +1,10 @@
 # WhatsApp Chat Viewer
 
-WhatsApp Chat Viewer is a standalone web page to view exported WhatsApp chats. The application works directly in a web browser. It does not send data to an external server.
+WhatsApp Chat Viewer is a standalone web application to read and search exported WhatsApp chats.
+
+> **100% Local and Private:** All processing occurs completely in your browser. Even when used on the deployed GitHub Pages website, no chat messages, media files, or telemetry are ever uploaded to any server or external service.
+
+![WhatsApp Chat Viewer Interface](ui-screenshot.png)
 
 ## Features
 
