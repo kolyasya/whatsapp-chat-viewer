@@ -383,8 +383,13 @@
       justify-content: center;
       cursor: pointer;
       font-size: 1rem;
+      line-height: 1;
+      padding: 0 0 0 2px; /* Visual optical center for play triangle */
       flex-shrink: 0;
       transition: background 0.15s ease, transform 0.1s ease;
+    }
+    .voice-play-btn.playing {
+      padding-left: 0; /* Exact center for pause icon */
     }
     .voice-play-btn:hover {
       background: #008f6f;
@@ -1442,11 +1447,13 @@
         this.audio.addEventListener("pause", () => {
           if (this.activeBtn) {
             this.activeBtn.textContent = "▶";
+            this.activeBtn.classList.remove("playing");
           }
         });
         this.audio.addEventListener("play", () => {
           if (this.activeBtn) {
             this.activeBtn.textContent = "⏸";
+            this.activeBtn.classList.add("playing");
           }
         });
         this.audio.addEventListener("error", () => {
@@ -1483,6 +1490,7 @@
         this.audio.pause();
         if (this.activeBtn) {
           this.activeBtn.textContent = "▶";
+          this.activeBtn.classList.remove("playing");
         }
       },
       stop() {
@@ -1491,6 +1499,7 @@
         }
         if (this.activeBtn) {
           this.activeBtn.textContent = "▶";
+          this.activeBtn.classList.remove("playing");
         }
         if (this.activeProgress) {
           this.activeProgress.style.width = "0%";
