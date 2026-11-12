@@ -58,6 +58,11 @@ WhatsApp Chat Viewer is a standalone web application to read and search exported
 3. Open `WhatsApp Chat Viewer.html` (or `index.html`) in your web browser.
 4. Click **Select export .txt file** or **Select chat folder**, or drag and drop the files into the window.
    - Alternatively, keep `WhatsApp Chat Viewer.html` directly in the unpacked chat directory and select the `.txt` file.
+
+### Try with Demo Chat
+A ready-to-use sample export is included in the `demo-chat/` folder:
+- Open `demo-chat/` via **Select chat folder** or drag and drop it into the window.
+- It contains a synthetic English conversation with photos, a video, voice notes, and a PDF document.
 ## Development and Testing
 
 ### Prerequisites

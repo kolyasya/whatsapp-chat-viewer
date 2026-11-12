@@ -32,5 +32,7 @@ chat-export/
 
 # Sensitive text chat logs (allow test fixtures)
 *.txt
+!demo-chat/**
+!demo-chat/*
 !tests/fixtures/*.txt
 !tests/fixtures/**/*.txt
