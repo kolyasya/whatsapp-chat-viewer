@@ -123,6 +123,21 @@ describe("WhatsApp Chat Viewer HTML Integration", () => {
     assert.ok(htmlContent.includes("webkitdirectory"));
   });
 
+  it("contains primary and secondary open buttons, fallback inputs, and status badge", () => {
+    assert.ok(htmlContent.includes('id="btnOpenFolder"'));
+    assert.ok(htmlContent.includes('id="btnOpenFile"'));
+    assert.ok(htmlContent.includes('id="fileInput"'));
+    assert.ok(htmlContent.includes('id="folderInput"'));
+    assert.ok(htmlContent.includes('id="status"'));
+  });
+
+  it("contains showDirectoryPicker or openFolderPicker logic in script", () => {
+    assert.ok(
+      htmlContent.includes("showDirectoryPicker") ||
+      htmlContent.includes("openFolderPicker")
+    );
+  });
+
   it("contains mediaFileMap and resolveMediaUrl helper in script", () => {
     assert.ok(htmlContent.includes("mediaFileMap: new Map()"));
     assert.ok(htmlContent.includes("function resolveMediaUrl"));
@@ -137,7 +152,15 @@ describe("WhatsApp Chat Viewer HTML Integration", () => {
     assert.ok(existsSync(htmlPath), "WhatsApp Chat Viewer.html must exist");
     assert.ok(existsSync(indexPath), "index.html must exist");
     const indexContent = readFileSync(indexPath, "utf-8");
+    assert.ok(indexContent.includes('id="btnOpenFolder"'));
+    assert.ok(indexContent.includes('id="btnOpenFile"'));
     assert.ok(indexContent.includes('id="folderInput"'));
+    assert.ok(indexContent.includes('id="fileInput"'));
+    assert.ok(indexContent.includes('id="status"'));
+    assert.ok(
+      indexContent.includes("showDirectoryPicker") ||
+      indexContent.includes("openFolderPicker")
+    );
     assert.ok(indexContent.includes("resolveMediaUrl"));
     assert.ok(indexContent.includes("mediaFileMap"));
   });

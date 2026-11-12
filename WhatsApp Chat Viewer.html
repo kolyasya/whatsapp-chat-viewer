@@ -35,35 +35,79 @@
     .controls {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
+      flex-wrap: wrap;
     }
-    .file-input-wrapper {
-      display: flex;
+    .btn-header-primary {
+      display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
+      padding: 6px 14px;
+      background: #ffffff;
+      color: #008069;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+      transition: background-color 0.15s, transform 0.05s;
+      white-space: nowrap;
     }
-    #fileInput, #folderInput {
-      font-size: 0.85rem;
-      color: #fff;
+    .btn-header-primary:hover {
+      background: #f0f2f5;
     }
-    .folder-input-label {
+    .btn-header-primary:active {
+      transform: scale(0.98);
+    }
+    .btn-header-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 12px;
+      background: rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.15s;
+      white-space: nowrap;
+    }
+    .btn-header-secondary:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+    .status-badge {
+      font-size: 0.82rem;
+      color: rgba(255, 255, 255, 0.92);
+      background: rgba(0, 0, 0, 0.18);
+      padding: 4px 10px;
+      border-radius: 12px;
+      white-space: nowrap;
+      max-width: 320px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .privacy-badge {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      padding: 4px 10px;
-      background: rgba(255, 255, 255, 0.15);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      border-radius: 4px;
-      color: #fff;
-      font-size: 0.82rem;
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.88);
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      padding: 4px 8px;
+      border-radius: 12px;
       cursor: pointer;
-      transition: background 0.15s;
+      transition: background 0.15s, color 0.15s;
       white-space: nowrap;
     }
-    .folder-input-label:hover {
-      background: rgba(255, 255, 255, 0.25);
+    .privacy-badge:hover {
+      background: rgba(255, 255, 255, 0.22);
+      color: #ffffff;
     }
-    #folderInput {
+    #fileInput, #folderInput {
       display: none;
     }
     .drop-overlay {
@@ -920,12 +964,12 @@
       </div>
     </div>
     <div class="controls">
-      <span id="status">Select export .txt file or folder</span>
-      <div class="file-input-wrapper">
-        <input type="file" id="fileInput" accept=".txt">
-        <label for="folderInput" class="folder-input-label" title="Select chat export folder with media">📁 Select folder</label>
-        <input type="file" id="folderInput" webkitdirectory directory multiple>
-      </div>
+      <button id="btnOpenFolder" class="btn-header-primary" title="Open WhatsApp export folder with media files">📁 Open Chat Folder</button>
+      <button id="btnOpenFile" class="btn-header-secondary" title="Select exported .txt chat file only">📄 Select .txt only</button>
+      <input type="file" id="fileInput" accept=".txt" style="display:none">
+      <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none">
+      <span id="status" class="status-badge" title="Open export folder or drop files here">Open export folder or drop files here</span>
+      <span id="privacyBadge" class="privacy-badge" title="All files are processed entirely in your browser. No data is sent to any server.">🔒 100% Local &amp; Private</span>
     </div>
   </header>
   
@@ -1038,6 +1082,7 @@
       galleryCurrentIndex: 0,
       galleryCategory: "all",
       gallerySearchQuery: "",
+      dirHandle: null,
       mediaFileMap: new Map()
     };
 
@@ -2322,18 +2367,79 @@
         }
       }
     });
-
-    function processFiles(fileList) {
-      if (!fileList || fileList.length === 0) return;
-      const files = Array.from(fileList);
-
-      // Revoke old object URLs if any to free memory
+    function clearMediaMap() {
       if (appState.mediaFileMap && appState.mediaFileMap.size > 0) {
         for (const url of appState.mediaFileMap.values()) {
           try { URL.revokeObjectURL(url); } catch (_) {}
         }
         appState.mediaFileMap.clear();
       }
+      appState.dirHandle = null;
+    }
+
+    async function openFolderPicker() {
+      if ('showDirectoryPicker' in window) {
+        try {
+          const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
+          clearMediaMap();
+          appState.dirHandle = dirHandle;
+          statusSpan.textContent = "Scanning folder...";
+
+          let chatHandle = null;
+          const fileEntries = [];
+
+          for await (const entry of dirHandle.values()) {
+            if (entry.kind === 'file') {
+              if (!chatHandle && entry.name === '_chat.txt') {
+                chatHandle = entry;
+              } else if (!chatHandle && entry.name.toLowerCase().endsWith('.txt')) {
+                chatHandle = entry;
+              } else {
+                fileEntries.push(entry);
+              }
+            }
+          }
+
+          if (!chatHandle) {
+            statusSpan.textContent = "Error: No .txt chat file found in folder";
+            return;
+          }
+
+          statusSpan.textContent = `Indexing ${fileEntries.length} media files...`;
+          let mediaCount = 0;
+          for (const entry of fileEntries) {
+            try {
+              const file = await entry.getFile();
+              appState.mediaFileMap.set(entry.name, URL.createObjectURL(file));
+              mediaCount++;
+            } catch (_) {}
+          }
+
+          statusSpan.textContent = `Reading ${chatHandle.name}...`;
+          const chatFile = await chatHandle.getFile();
+          const text = await chatFile.text();
+          const parsed = parseChat(text);
+          const statusMsg = mediaCount > 0
+            ? `💬 ${parsed.length.toLocaleString()} messages & 🖼️ ${mediaCount.toLocaleString()} media files`
+            : `💬 ${parsed.length.toLocaleString()} messages (text only)`;
+          initChatDataset(parsed, statusMsg);
+        } catch (err) {
+          if (err.name === 'AbortError') return;
+          console.warn("showDirectoryPicker failed, falling back to input:", err);
+          const folderInput = document.getElementById('folderInput');
+          if (folderInput) folderInput.click();
+        }
+      } else {
+        const folderInput = document.getElementById('folderInput');
+        if (folderInput) folderInput.click();
+      }
+    }
+
+    function processFiles(fileList) {
+      if (!fileList || fileList.length === 0) return;
+      const files = Array.from(fileList);
+
+      clearMediaMap();
 
       // Find chat .txt file
       let chatFile = files.find(f => f.name === "_chat.txt");
@@ -2360,18 +2466,41 @@
       reader.onload = function(e) {
         const parsed = parseChat(e.target.result);
         const statusMsg = mediaCount > 0
-          ? `Loaded ${parsed.length.toLocaleString()} messages & ${mediaCount.toLocaleString()} media files`
-          : `Messages: ${parsed.length.toLocaleString()}`;
+          ? `💬 ${parsed.length.toLocaleString()} messages & 🖼️ ${mediaCount.toLocaleString()} media files`
+          : `💬 ${parsed.length.toLocaleString()} messages (text only)`;
         initChatDataset(parsed, statusMsg);
       };
       reader.readAsText(chatFile, "UTF-8");
     }
 
-    document.getElementById('fileInput').addEventListener('change', function(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      processFiles([file]);
-    });
+    const btnOpenFolder = document.getElementById('btnOpenFolder');
+    if (btnOpenFolder) {
+      btnOpenFolder.addEventListener('click', () => openFolderPicker());
+    }
+
+    const btnOpenFile = document.getElementById('btnOpenFile');
+    if (btnOpenFile) {
+      btnOpenFile.addEventListener('click', () => {
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput) fileInput.click();
+      });
+    }
+
+    const privacyBadge = document.getElementById('privacyBadge');
+    if (privacyBadge) {
+      privacyBadge.addEventListener('click', () => {
+        alert("🔒 100% Client-Side Privacy\n\nAll files are processed entirely in your browser on your device.\nNo data, messages, or media are ever uploaded to any server or network.");
+      });
+    }
+
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput) {
+      fileInput.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        processFiles([file]);
+      });
+    }
 
     const folderInput = document.getElementById('folderInput');
     if (folderInput) {
